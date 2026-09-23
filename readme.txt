@@ -4,7 +4,7 @@ Tags: web push, notificações, push notifications, autopush, service worker
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.0.15
+Stable tag: 1.0.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,6 +105,13 @@ Sim. Por padrão, a desinstalação não remove nada. Em
 deve ser apagado ao remover o plugin.
 
 == Changelog ==
+
+= 1.0.16 =
+* Novo: a tela Diagnóstico passa a mostrar a versão instalada, a versão
+  publicada no repositório e um botão "Verificar atualização agora".
+  A consulta fica em cache por 6 horas e o WordPress guarda a própria lista
+  de atualizações — quando uma versão nova não aparecia, não havia como
+  saber se o plugin ainda não tinha olhado ou se não havia nada novo.
 
 = 1.0.15 =
 * Corrigido: o link "Ativar atualizações automáticas" não aparecia para este
@@ -242,6 +249,9 @@ deve ser apagado ao remover o plugin.
   AutoPush por publicação, rastreio de clique, diagnóstico e métricas.
 
 == Upgrade Notice ==
+
+= 1.0.16 =
+Mostra o estado da atualizacao e um botao para verificar na hora.
 
 = 1.0.15 =
 Libera o "Ativar atualizacoes automaticas" na tela de Plugins.

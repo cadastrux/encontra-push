@@ -32,6 +32,7 @@ class Encontra_Push_Admin {
 		add_action( 'admin_post_encontra_push_appearance', array( $this, 'handle_appearance' ) );
 		add_action( 'admin_post_encontra_push_widget', array( $this, 'handle_widget' ) );
 		add_action( 'admin_post_encontra_push_diagnostics', array( $this, 'handle_diagnostics' ) );
+		add_action( 'admin_post_encontra_push_check_update', array( $this, 'handle_check_update' ) );
 		add_action( 'admin_post_encontra_push_uninstall_options', array( $this, 'handle_uninstall_options' ) );
 		add_action( 'admin_notices', array( $this, 'connection_notice' ) );
 	}
@@ -354,6 +355,53 @@ class Encontra_Push_Admin {
 		$this->purge_page_cache();
 
 		$this->redirect_back( 'success', __( 'Sino de notícias salvo.', 'encontra-push' ) );
+	}
+
+	/**
+	 * Forca a verificacao de atualizacao no GitHub.
+	 *
+	 * O plugin guarda a resposta do GitHub por 6 horas e o WordPress guarda a
+	 * propria lista de atualizacoes. Publicar uma versao e nao ve-la aparecer
+	 * e quase sempre um desses dois caches, nao um defeito — este botao
+	 * resolve sem mandar o operador esperar.
+	 */
+	public function handle_check_update(): void {
+		$this->authorize( 'encontra_push_manage', 'encontra_push_check_update' );
+
+		$this->plugin->updater->force_check();
+
+		$estado = $this->plugin->updater->status();
+
+		if ( null === $estado['disponivel'] ) {
+			$this->redirect_back(
+				'error',
+				__( 'Não foi possível falar com o GitHub agora. Tente de novo em alguns minutos.', 'encontra-push' )
+			);
+
+			return;
+		}
+
+		if ( version_compare( $estado['disponivel'], $estado['instalada'], '>' ) ) {
+			$this->redirect_back(
+				'success',
+				sprintf(
+					/* translators: %s: numero da versao. */
+					__( 'Versão %s disponível. Abra a tela de Plugins para atualizar.', 'encontra-push' ),
+					$estado['disponivel']
+				)
+			);
+
+			return;
+		}
+
+		$this->redirect_back(
+			'success',
+			sprintf(
+				/* translators: %s: numero da versao. */
+				__( 'O plugin já está na versão mais recente (%s).', 'encontra-push' ),
+				$estado['instalada']
+			)
+		);
 	}
 
 	/** Secao 57: envia ao painel o diagnostico completo, servidor + navegador. */

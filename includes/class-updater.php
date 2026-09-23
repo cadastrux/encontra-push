@@ -348,4 +348,35 @@ class Encontra_Push_Updater {
 	public function flush(): void {
 		delete_transient( self::CACHE_KEY );
 	}
+
+	/**
+	 * Estado da verificacao, para a tela de Diagnostico.
+	 *
+	 * @return array{instalada: string, disponivel: ?string, em_cache: bool, repositorio: string}
+	 */
+	public function status(): array {
+		$em_cache = false !== get_transient( self::CACHE_KEY );
+		$versao   = $this->latest_version();
+
+		return array(
+			'instalada'   => ENCONTRA_PUSH_VERSION,
+			'disponivel'  => $versao['numero'] ?? null,
+			'em_cache'    => $em_cache,
+			'repositorio' => 'https://github.com/' . self::REPO,
+		);
+	}
+
+	/**
+	 * Limpa o cache do plugin E o do WordPress, e forca uma nova consulta.
+	 *
+	 * Existe porque so limpar o cache local nao basta: o WordPress guarda o
+	 * proprio transiente `update_plugins` e, enquanto ele estiver fresco, nem
+	 * chega a chamar este filtro. Sem os dois, o operador publica uma versao e
+	 * fica ate 6 horas sem entender por que ela nao aparece.
+	 */
+	public function force_check(): void {
+		$this->flush();
+		delete_site_transient( 'update_plugins' );
+		wp_update_plugins();
+	}
 }

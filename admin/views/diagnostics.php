@@ -80,4 +80,60 @@ defined( 'ABSPATH' ) || exit;
 			</ul>
 		</div>
 	<?php endif; ?>
+
+	<?php
+	/*
+	 * Verificacao de atualizacao.
+	 *
+	 * Fica aqui, e nao so na tela de Plugins, porque quando uma versao nova
+	 * nao aparece a pergunta e sempre a mesma: "o plugin nao viu, ou nao ha
+	 * nada novo?". A tela de Plugins nao responde isso — mostra o mesmo nada
+	 * nos dois casos. Aqui a resposta e explicita.
+	 */
+	$atualizacao = encontra_push()->updater->status();
+	?>
+	<div class="card" style="max-width: none;">
+		<h2><?php esc_html_e( 'Atualização do plugin', 'encontra-push' ); ?></h2>
+
+		<table class="widefat striped" style="margin-bottom: 12px;">
+			<tbody>
+				<tr>
+					<td style="width: 220px;"><?php esc_html_e( 'Versão instalada', 'encontra-push' ); ?></td>
+					<td><strong><?php echo esc_html( $atualizacao['instalada'] ); ?></strong></td>
+				</tr>
+				<tr>
+					<td><?php esc_html_e( 'Versão publicada', 'encontra-push' ); ?></td>
+					<td>
+						<?php if ( null === $atualizacao['disponivel'] ) : ?>
+							<em><?php esc_html_e( 'não foi possível consultar o repositório agora', 'encontra-push' ); ?></em>
+						<?php elseif ( version_compare( $atualizacao['disponivel'], $atualizacao['instalada'], '>' ) ) : ?>
+							<strong><?php echo esc_html( $atualizacao['disponivel'] ); ?></strong>
+							— <?php esc_html_e( 'atualização disponível na tela de Plugins.', 'encontra-push' ); ?>
+						<?php else : ?>
+							<?php echo esc_html( $atualizacao['disponivel'] ); ?>
+							— <?php esc_html_e( 'o plugin está em dia.', 'encontra-push' ); ?>
+						<?php endif; ?>
+					</td>
+				</tr>
+				<tr>
+					<td><?php esc_html_e( 'Repositório', 'encontra-push' ); ?></td>
+					<td>
+						<a href="<?php echo esc_url( $atualizacao['repositorio'] ); ?>" target="_blank" rel="noopener">
+							<?php echo esc_html( $atualizacao['repositorio'] ); ?>
+						</a>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+
+		<p class="description">
+			<?php esc_html_e( 'A consulta ao repositório fica em cache por 6 horas, e o WordPress guarda a própria lista de atualizações. Se uma versão acabou de ser publicada e ainda não apareceu, use o botão abaixo em vez de esperar.', 'encontra-push' ); ?>
+		</p>
+
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'encontra_push_check_update' ); ?>
+			<input type="hidden" name="action" value="encontra_push_check_update">
+			<?php submit_button( __( 'Verificar atualização agora', 'encontra-push' ), 'secondary', 'submit', false ); ?>
+		</form>
+	</div>
 </div>
