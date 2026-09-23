@@ -88,24 +88,38 @@ class Encontra_Push_Updater {
 
 		$version = $this->latest_version();
 
-		if ( null === $version ) {
-			return $update;
-		}
-
-		// So responde quando ha novidade de verdade. Devolver uma versao igual
-		// ou menor faria o WordPress registrar "sem atualizacao" e, em algumas
-		// telas, piscar o aviso a toa.
-		if ( version_compare( $version['numero'], ENCONTRA_PUSH_VERSION, '<=' ) ) {
-			return $update;
-		}
+		/*
+		 * Responde SEMPRE, inclusive quando nao ha novidade — e inclusive
+		 * quando o GitHub nao respondeu.
+		 *
+		 * O WordPress so mostra o link "Ativar atualizacoes automaticas" para
+		 * plugin que aparece em `response` (ha atualizacao) ou em `no_update`
+		 * (esta em dia) do transiente update_plugins. Quem devolve false neste
+		 * filtro cai no `continue` do wp_update_plugins() e fica fora dos dois:
+		 * a atualizacao manual continua funcionando, mas a coluna
+		 * "Atualizacoes automaticas" fica vazia, sem explicacao.
+		 *
+		 * Quem decide em qual das duas listas entrar e o proprio WordPress,
+		 * comparando esta versao com a instalada. Sem novidade (ou sem
+		 * resposta do GitHub), devolvemos a versao instalada, que cai em
+		 * `no_update` — exatamente o que significa "plugin em dia".
+		 */
+		$numero = $version['numero'] ?? ENCONTRA_PUSH_VERSION;
+		$pacote = $version['pacote'] ?? '';
 
 		return array(
 			'id'           => 'github.com/' . self::REPO,
 			'slug'         => ENCONTRA_PUSH_SLUG,
 			'plugin'       => $plugin_file,
-			'version'      => $version['numero'],
+			'version'      => $numero,
+			// Algumas telas do wp-admin leem `new_version` em vez de
+			// `version`. Mandar os dois evita linha de atualizacao quebrada.
+			'new_version'  => $numero,
 			'url'          => 'https://github.com/' . self::REPO,
-			'package'      => $version['pacote'],
+			'package'      => $pacote,
+			'icons'        => array(),
+			'banners'      => array(),
+			'banners_rtl'  => array(),
 			'requires'     => $plugin_data['RequiresWP'] ?? '',
 			'requires_php' => $plugin_data['RequiresPHP'] ?? '',
 			'tested'       => '',

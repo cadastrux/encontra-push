@@ -3,7 +3,7 @@
  * Plugin Name:       Encontra Push
  * Plugin URI:        https://push.encontra.com.br
  * Description:       Conecta este site ao painel Encontra Push: captura de assinantes, Service Worker, AutoPush por publicacao, rastreio de clique e metricas no proprio wp-admin.
- * Version:           1.0.14
+ * Version:           1.0.15
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Author:            Encontra
@@ -19,7 +19,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ENCONTRA_PUSH_VERSION', '1.0.14' );
+define( 'ENCONTRA_PUSH_VERSION', '1.0.15' );
 define( 'ENCONTRA_PUSH_FILE', __FILE__ );
 define( 'ENCONTRA_PUSH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ENCONTRA_PUSH_URL', plugin_dir_url( __FILE__ ) );
