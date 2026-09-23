@@ -9,3 +9,10 @@
 *.jpg binary
 *.webp binary
 *.zip binary
+
+# O zipball da tag e o pacote que o WordPress instala. Estes arquivos servem
+# ao repositorio, nao ao site, entao ficam de fora do arquivo gerado — assim o
+# que chega pela atualizacao automatica e igual ao ZIP de instalacao manual.
+.gitignore export-ignore
+.gitattributes export-ignore
+README.md export-ignore
