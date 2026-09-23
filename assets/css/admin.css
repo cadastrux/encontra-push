@@ -1,0 +1,124 @@
+/* =========================================================================
+   Encontra Push — telas do wp-admin.
+
+   Convive com o CSS do WordPress: reaproveitamos os componentes nativos
+   (.card, .notice, .wp-list-table) e acrescentamos apenas o que falta.
+   ========================================================================= */
+
+.ep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+}
+
+.ep-stat {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    padding: 14px 16px;
+}
+
+.ep-stat__label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #646970;
+}
+
+.ep-stat__value {
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-top: 4px;
+}
+
+.ep-stat__hint {
+    font-size: 12px;
+    color: #787c82;
+    margin-top: 2px;
+}
+
+.ep-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 18px;
+    align-items: start;
+}
+
+.ep-check {
+    display: flex;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.ep-check:last-child { border-bottom: 0; }
+
+.ep-check__mark { flex: none; font-weight: 700; width: 22px; }
+.ep-check__mark--ok { color: #00812a; }
+.ep-check__mark--error { color: #b32d2e; }
+.ep-check__mark--warning { color: #996800; }
+
+.ep-check__hint { color: #646970; font-size: 13px; }
+
+.ep-code {
+    display: block;
+    padding: 12px 14px;
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.ep-pairing-code {
+    font-family: Consolas, Monaco, monospace;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 12px 0;
+}
+
+.ep-preview {
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    padding: 16px;
+}
+
+.ep-preview__note {
+    font-size: 12px;
+    color: #646970;
+    margin-top: 10px;
+}
+
+.ep-notif {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 10px;
+    padding: 11px 13px;
+    display: flex;
+    gap: 11px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.ep-notif__title { font-weight: 600; margin: 0 0 2px; }
+.ep-notif__body { margin: 0; color: #646970; font-size: 13px; }
+
+.ep-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.ep-badge--ok { background: #edfaef; color: #00812a; }
+.ep-badge--warn { background: #fcf9e8; color: #996800; }
+.ep-badge--error { background: #fcf0f1; color: #b32d2e; }
+.ep-badge--muted { background: #f0f0f1; color: #646970; }

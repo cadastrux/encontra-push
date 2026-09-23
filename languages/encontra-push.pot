@@ -1,0 +1,14 @@
+# Encontra Push — modelo de traducao.
+# Gere a versao atualizada com: wp i18n make-pot . languages/encontra-push.pot
+#
+# O idioma da fase 1 e pt-BR, e as strings ja estao em portugues no codigo.
+# Este arquivo existe para que uma traducao futura (es_ES, en_US) nao exija
+# mudanca estrutural no plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Encontra Push 1.0.14\n"
+"Report-Msgid-Bugs-To: https://push.encontra.com.br\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: encontra-push\n"

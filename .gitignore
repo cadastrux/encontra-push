@@ -1,0 +1,22 @@
+# Este repositorio guarda o plugin PRONTO para instalar: o conteudo daqui e
+# exatamente o que vai para wp-content/plugins/encontra-push/.
+# Por isso nao ha build, nem dependencia, nem artefato — so o codigo.
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*~
+
+# Nunca deve existir aqui, mas se alguem copiar um .env por engano, que ao
+# menos nao chegue ao repositorio.
+.env
+.env.*
+
+# Pacote gerado para distribuicao manual: sai do zipball da tag, nao daqui.
+*.zip

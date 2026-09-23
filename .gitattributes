@@ -1,0 +1,11 @@
+# O plugin roda em servidor Linux, e o zipball da tag e gerado a partir do que
+# esta gravado aqui. Fixar LF evita que um commit feito no Windows mude a
+# terminacao de linha de arquivo inteiro e polua o historico — e evita CRLF
+# chegando ao servidor.
+* text=auto eol=lf
+
+# Binarios nao passam por conversao.
+*.png binary
+*.jpg binary
+*.webp binary
+*.zip binary
