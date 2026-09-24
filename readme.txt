@@ -4,7 +4,7 @@ Tags: web push, notificações, push notifications, autopush, service worker
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.0.16
+Stable tag: 1.0.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -106,7 +106,7 @@ deve ser apagado ao remover o plugin.
 
 == Changelog ==
 
-= 1.0.16 =
+= 1.0.17 =
 * Novo: a tela Diagnóstico passa a mostrar a versão instalada, a versão
   publicada no repositório e um botão "Verificar atualização agora".
   A consulta fica em cache por 6 horas e o WordPress guarda a própria lista
@@ -250,7 +250,7 @@ deve ser apagado ao remover o plugin.
 
 == Upgrade Notice ==
 
-= 1.0.16 =
+= 1.0.17 =
 Mostra o estado da atualizacao e um botao para verificar na hora.
 
 = 1.0.15 =

@@ -45,39 +45,6 @@ git push origin main --tags
 Em até 6 horas (ou na hora, clicando em **Verificar novamente** no Painel →
 Atualizações) os sites passam a mostrar a atualização.
 
-## Como a atualização funciona
-
-`includes/class-updater.php` responde ao filtro `update_plugins_github.com`,
-ativado pelo cabeçalho `Update URI:` do arquivo principal. Ele lê
-`/repos/cadastrux/encontra-push/tags`, escolhe a maior versão no formato
-`v1.2.3` e devolve ao WordPress uma resposta no mesmo formato que o
-wordpress.org devolveria.
-
-Declarar o `Update URI` tem um efeito de segurança: o WordPress para de
-consultar o wordpress.org para este plugin. Sem isso, bastaria alguém publicar
-um plugin com o slug `encontra-push` no diretório oficial para que os sites
-baixassem o pacote dele por cima deste.
-
-A consulta fica em cache por 6 horas. O limite da API do GitHub sem
-autenticação é de 60 requisições por hora por IP.
-
-## Repositório privado
-
-Com o repositório **público**, nada precisa ser configurado nos sites.
-
-Se ele for mantido **privado**, cada site precisa de um token, no
-`wp-config.php`:
-
-```php
-define( 'ENCONTRA_PUSH_GITHUB_TOKEN', 'github_pat_...' );
-```
-
-Use um *fine-grained token* com acesso somente de leitura a **este**
-repositório. Vale pesar a troca: o token fica em texto no `wp-config.php` de
-cada site, e um site comprometido entrega o acesso de leitura ao código. Sem
-token, um repositório privado simplesmente não oferece atualização — o site
-continua funcionando normalmente.
-
 ## Requisitos
 
 WordPress 6.0+, PHP 8.1+, site em HTTPS com certificado válido.
