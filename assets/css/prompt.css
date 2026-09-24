@@ -181,9 +181,28 @@
 .ep-bell {
     --ep-bell-offset: 20px;
 
+    /*
+     * O sino fica ABAIXO das camadas que o site considera prioritarias —
+     * banner de cookies, modal de consentimento, barra de anuncio.
+     *
+     * Antes ele usava 2147482999, quase o teto do z-index, e cobria tudo.
+     * Nao e o lugar dele: o sino e um convite permanente, enquanto um aviso
+     * de cookies e uma resposta que o visitante precisa dar para continuar.
+     * Tapar esse aviso atrapalha o site e ainda pode comprometer o
+     * consentimento.
+     *
+     * 9999 passa na frente do conteudo comum e de cabecalho fixo, e fica
+     * atras de banner de cookies (que costuma usar de 10000 para cima).
+     * Se algum site precisar de outro valor, basta declarar no CSS dele,
+     * sem tocar no plugin:
+     *
+     *     .ep-bell { --ep-bell-z: 500; }
+     */
+    --ep-bell-z: 9999;
+
     position: fixed;
     bottom: var(--ep-bell-offset);
-    z-index: 2147482999; /* logo abaixo do pre-prompt */
+    z-index: var(--ep-bell-z);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 14px;
     line-height: 1.45;

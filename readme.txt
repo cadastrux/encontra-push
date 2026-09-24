@@ -4,7 +4,7 @@ Tags: web push, notificações, push notifications, autopush, service worker
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.0.17
+Stable tag: 1.0.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,6 +105,14 @@ Sim. Por padrão, a desinstalação não remove nada. Em
 deve ser apagado ao remover o plugin.
 
 == Changelog ==
+
+= 1.0.18 =
+* Corrigido: o sino ficava por cima do banner de cookies do site. Ele usava
+  quase o teto do z-index e cobria qualquer camada. Agora fica atras do
+  aviso de cookies, que e uma resposta que o visitante precisa dar para
+  continuar navegando. Se algum tema precisar de outro valor, da para
+  ajustar pelo CSS do site sem tocar no plugin:
+  .ep-bell { --ep-bell-z: 500; }
 
 = 1.0.17 =
 * Novo: a tela Diagnóstico passa a mostrar a versão instalada, a versão
@@ -249,6 +257,9 @@ deve ser apagado ao remover o plugin.
   AutoPush por publicação, rastreio de clique, diagnóstico e métricas.
 
 == Upgrade Notice ==
+
+= 1.0.18 =
+O sino passa a ficar atras do banner de cookies.
 
 = 1.0.17 =
 Mostra o estado da atualizacao e um botao para verificar na hora.

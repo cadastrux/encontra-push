@@ -70,6 +70,10 @@ defined( 'ABSPATH' ) || exit;
 					<p class="description">
 						<?php esc_html_e( 'Aumente se o sino ficar por cima de outro botão fixo do site (WhatsApp, barra de cookies, voltar ao topo).', 'encontra-push' ); ?>
 					</p>
+					<p class="description">
+						<?php esc_html_e( 'O sino fica atrás do banner de cookies de propósito. Se em algum tema ele ainda cobrir outra camada, acrescente ao CSS do site:', 'encontra-push' ); ?>
+						<code>.ep-bell { --ep-bell-z: 500; }</code>
+					</p>
 				</td>
 			</tr>
 
