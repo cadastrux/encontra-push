@@ -248,22 +248,75 @@
         return output;
     }
 
-    /* ---------------------------------------------- prévia do pré-prompt - */
+    /* ------------------------------------------- abas de aparelho ------- */
 
-    var previewTitle = document.getElementById('ep-prompt-title');
-    var previewBody = document.getElementById('ep-prompt-body');
+    /*
+     * Desktop e celular sao dois conjuntos completos, ambos presentes no
+     * formulario: a aba so troca qual esta visivel. Assim o envio leva os dois
+     * de uma vez e nenhum depende de JavaScript para ser salvo — esconder com
+     * `hidden` nao tira o campo do POST.
+     */
+    var deviceTabs = document.querySelectorAll('[data-ep-device-tab]');
 
-    function bindPreview(input, target) {
-        if (!input || !target) return;
+    function showDevice(device) {
+        deviceTabs.forEach(function (tab) {
+            tab.classList.toggle('nav-tab-active', tab.dataset.epDeviceTab === device);
+        });
 
-        var update = function () {
-            target.textContent = input.value || input.placeholder || '';
-        };
+        document.querySelectorAll('[data-ep-device-panel]').forEach(function (panel) {
+            panel.hidden = panel.dataset.epDevicePanel !== device;
+        });
 
-        input.addEventListener('input', update);
-        update();
+        bindPreviewFor(device);
     }
 
-    bindPreview(previewTitle, document.querySelector('[data-preview-title]'));
-    bindPreview(previewBody, document.querySelector('[data-preview-body]'));
+    deviceTabs.forEach(function (tab) {
+        tab.addEventListener('click', function (event) {
+            event.preventDefault();
+            showDevice(tab.dataset.epDeviceTab);
+        });
+    });
+
+    /* ---------------------------------------------- prévia do pré-prompt - */
+
+    /*
+     * A previa acompanha a aba aberta: sem isso, quem editasse o celular veria
+     * a previa continuar mostrando o texto do desktop — e concluiria que o
+     * campo nao funciona.
+     */
+    var previewBindings = [];
+
+    function bindPreviewFor(device) {
+        // Remove as ligacoes da aba anterior, senao os dois conjuntos passam a
+        // escrever no mesmo lugar e vence quem digitou por ultimo.
+        previewBindings.forEach(function (item) {
+            item.input.removeEventListener('input', item.update);
+        });
+
+        previewBindings = [];
+
+        var panel = document.querySelector('[data-ep-device-panel="' + device + '"]');
+
+        if (!panel) return;
+
+        [['title', 'title'], ['body', 'body'], ['accept', 'accept'], ['decline', 'decline']]
+            .forEach(function (pair) {
+                var input = panel.querySelector('[data-ep-preview="' + pair[0] + '"]');
+                var target = document.querySelector('[data-preview-' + pair[1] + ']');
+
+                if (!input || !target) return;
+
+                var update = function () {
+                    target.textContent = input.value || input.placeholder || '';
+                };
+
+                input.addEventListener('input', update);
+                previewBindings.push({ input: input, update: update });
+                update();
+            });
+    }
+
+    if (deviceTabs.length) {
+        showDevice('desktop');
+    }
 })();

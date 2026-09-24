@@ -2,12 +2,24 @@
 /**
  * Secao 55 — configuracao de inscricao, com previa ao vivo.
  *
+ * Desktop e celular tem conjuntos independentes. Os dois ficam no formulario
+ * ao mesmo tempo, e a aba so troca qual esta visivel: assim o envio leva os
+ * dois de uma vez e nada depende de JavaScript para ser salvo.
+ *
  * @package EncontraPush
  * @var Encontra_Push_Settings $settings
  * @var array                  $prompt
  */
 
 defined( 'ABSPATH' ) || exit;
+
+/*
+ * Enquanto o conjunto do celular nunca tiver sido salvo, o formulario abre com
+ * os valores do desktop. Assim o primeiro save ja grava os dois completos, e a
+ * partir dali eles seguem separados. Sem isso, a aba do celular abriria vazia
+ * e quem salvasse sem olhar apagaria a configuracao que o site vinha usando.
+ */
+$ep_mobile = array_merge( $prompt, (array) ( $prompt['mobile_settings'] ?? array() ) );
 ?>
 <div class="wrap">
 	<h1><?php esc_html_e( 'Solicitação de permissão', 'encontra-push' ); ?></h1>
@@ -18,7 +30,7 @@ defined( 'ABSPATH' ) || exit;
 	<?php endif; ?>
 
 	<p class="description" style="max-width: 760px;">
-		<?php esc_html_e( 'O prompt nativo do navegador só é aberto depois que o visitante clica no nosso pré-prompt. Pedir permissão automaticamente no carregamento e o caminho mais rápido para o navegador passar a bloquear o pedido em todo o domínio.', 'encontra-push' ); ?>
+		<?php esc_html_e( 'Desktop e celular têm configurações próprias: gatilho, textos, posição e até a forma de pedir a permissão. Trocar de aba não perde o que foi digitado na outra — as duas são salvas juntas.', 'encontra-push' ); ?>
 	</p>
 
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -29,66 +41,7 @@ defined( 'ABSPATH' ) || exit;
 			<div>
 				<table class="form-table" role="presentation">
 					<tr>
-						<th scope="row"><label for="ep-mode"><?php esc_html_e( 'Quando exibir', 'encontra-push' ); ?></label></th>
-						<td>
-							<select id="ep-mode" name="prompt[mode]">
-								<?php
-								$modes = array(
-									'delay'     => __( 'Após X segundos', 'encontra-push' ),
-									'visits'    => __( 'Após X visitas', 'encontra-push' ),
-									'pageviews' => __( 'Após X páginas na sessão', 'encontra-push' ),
-									'selector'  => __( 'Ao clicar em um seletor CSS', 'encontra-push' ),
-									'manual'    => __( 'Somente por botão manual', 'encontra-push' ),
-									'disabled'  => __( 'Desativado', 'encontra-push' ),
-								);
-
-								foreach ( $modes as $value => $label ) :
-									?>
-									<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $prompt['mode'], $value ); ?>>
-										<?php echo esc_html( $label ); ?>
-									</option>
-								<?php endforeach; ?>
-							</select>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row"><?php esc_html_e( 'Gatilhos', 'encontra-push' ); ?></th>
-						<td>
-							<label>
-								<?php esc_html_e( 'Segundos', 'encontra-push' ); ?>
-								<input type="number" min="0" max="600" name="prompt[delay_seconds]"
-								       value="<?php echo esc_attr( $prompt['delay_seconds'] ); ?>" class="small-text">
-							</label>
-
-							<label style="margin-left: 12px;">
-								<?php esc_html_e( 'Visitas', 'encontra-push' ); ?>
-								<input type="number" min="1" max="50" name="prompt[visits]"
-								       value="<?php echo esc_attr( $prompt['visits'] ); ?>" class="small-text">
-							</label>
-
-							<label style="margin-left: 12px;">
-								<?php esc_html_e( 'Páginas', 'encontra-push' ); ?>
-								<input type="number" min="1" max="50" name="prompt[pageviews]"
-								       value="<?php echo esc_attr( $prompt['pageviews'] ); ?>" class="small-text">
-							</label>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row"><label for="ep-selector"><?php esc_html_e( 'Seletor CSS', 'encontra-push' ); ?></label></th>
-						<td>
-							<input type="text" id="ep-selector" class="regular-text" name="prompt[css_selector]"
-							       value="<?php echo esc_attr( $prompt['css_selector'] ); ?>"
-							       placeholder=".botao-notificacoes">
-							<p class="description">
-								<?php esc_html_e( 'No modo manual, use o atributo data-encontra-push-subscribe em qualquer botão do tema.', 'encontra-push' ); ?>
-							</p>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row"><?php esc_html_e( 'Dispositivos', 'encontra-push' ); ?></th>
+						<th scope="row"><?php esc_html_e( 'Onde aparece', 'encontra-push' ); ?></th>
 						<td>
 							<label>
 								<input type="checkbox" name="prompt[desktop]" value="1" <?php checked( ! empty( $prompt['desktop'] ) ); ?>>
@@ -97,86 +50,41 @@ defined( 'ABSPATH' ) || exit;
 
 							<label style="margin-left: 12px;">
 								<input type="checkbox" name="prompt[mobile]" value="1" <?php checked( ! empty( $prompt['mobile'] ) ); ?>>
-								<?php esc_html_e( 'Mobile', 'encontra-push' ); ?>
+								<?php esc_html_e( 'Celular e tablet', 'encontra-push' ); ?>
 							</label>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row"><?php esc_html_e( 'Reexibição', 'encontra-push' ); ?></th>
-						<td>
-							<label>
-								<?php esc_html_e( 'Após fechar (dias)', 'encontra-push' ); ?>
-								<input type="number" min="1" max="365" name="prompt[redisplay_dismiss_days]"
-								       value="<?php echo esc_attr( $prompt['redisplay_dismiss_days'] ); ?>" class="small-text">
-							</label>
-
-							<label style="margin-left: 12px;">
-								<?php esc_html_e( 'Após "Agora não" (dias)', 'encontra-push' ); ?>
-								<input type="number" min="1" max="365" name="prompt[redisplay_later_days]"
-								       value="<?php echo esc_attr( $prompt['redisplay_later_days'] ); ?>" class="small-text">
-							</label>
-
 							<p class="description">
-								<?php esc_html_e( 'Se o visitante bloquear a permissão no próprio navegador, o pré-prompt não volta a aparecer.', 'encontra-push' ); ?>
+								<?php esc_html_e( 'Desmarcado, o pré-prompt não aparece naquele tipo de aparelho — independentemente do que estiver configurado na aba dele.', 'encontra-push' ); ?>
 							</p>
 						</td>
 					</tr>
-
-					<tr>
-						<th scope="row"><label for="ep-prompt-title"><?php esc_html_e( 'Título', 'encontra-push' ); ?></label></th>
-						<td>
-							<input type="text" id="ep-prompt-title" class="regular-text" name="prompt[title]"
-							       value="<?php echo esc_attr( $prompt['title'] ); ?>">
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row"><label for="ep-prompt-body"><?php esc_html_e( 'Texto', 'encontra-push' ); ?></label></th>
-						<td>
-							<textarea id="ep-prompt-body" class="large-text" rows="3" name="prompt[body]"><?php echo esc_textarea( $prompt['body'] ); ?></textarea>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row"><?php esc_html_e( 'Botões', 'encontra-push' ); ?></th>
-						<td>
-							<label>
-								<?php esc_html_e( 'Aceitar', 'encontra-push' ); ?>
-								<input type="text" name="prompt[accept_label]" value="<?php echo esc_attr( $prompt['accept_label'] ); ?>">
-							</label>
-
-							<label style="margin-left: 12px;">
-								<?php esc_html_e( 'Recusar', 'encontra-push' ); ?>
-								<input type="text" name="prompt[decline_label]" value="<?php echo esc_attr( $prompt['decline_label'] ); ?>">
-							</label>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row"><label for="ep-position"><?php esc_html_e( 'Posição', 'encontra-push' ); ?></label></th>
-						<td>
-							<select id="ep-position" name="prompt[position]">
-								<?php
-								$positions = array(
-									'top-center'    => __( 'Topo, centro', 'encontra-push' ),
-									'top-left'      => __( 'Topo, esquerda', 'encontra-push' ),
-									'top-right'     => __( 'Topo, direita', 'encontra-push' ),
-									'bottom-center' => __( 'Rodapé, centro', 'encontra-push' ),
-									'bottom-left'   => __( 'Rodapé, esquerda', 'encontra-push' ),
-									'bottom-right'  => __( 'Rodapé, direita', 'encontra-push' ),
-								);
-
-								foreach ( $positions as $value => $label ) :
-									?>
-									<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $prompt['position'], $value ); ?>>
-										<?php echo esc_html( $label ); ?>
-									</option>
-								<?php endforeach; ?>
-							</select>
-						</td>
-					</tr>
 				</table>
+
+				<h2 class="nav-tab-wrapper" style="margin-top: 18px;">
+					<a href="#" class="nav-tab nav-tab-active" data-ep-device-tab="desktop">
+						<?php esc_html_e( 'Desktop', 'encontra-push' ); ?>
+					</a>
+					<a href="#" class="nav-tab" data-ep-device-tab="mobile">
+						<?php esc_html_e( 'Celular', 'encontra-push' ); ?>
+					</a>
+				</h2>
+
+				<div data-ep-device-panel="desktop">
+					<?php
+					$ep_prefix = 'prompt';
+					$ep_id     = 'desktop';
+					$ep_p      = $prompt;
+					require ENCONTRA_PUSH_DIR . 'admin/views/partial-prompt-device.php';
+					?>
+				</div>
+
+				<div data-ep-device-panel="mobile" hidden>
+					<?php
+					$ep_prefix = 'prompt[mobile_settings]';
+					$ep_id     = 'mobile';
+					$ep_p      = $ep_mobile;
+					require ENCONTRA_PUSH_DIR . 'admin/views/partial-prompt-device.php';
+					?>
+				</div>
 
 				<?php submit_button( __( 'Salvar configuração', 'encontra-push' ) ); ?>
 			</div>
@@ -191,14 +99,14 @@ defined( 'ABSPATH' ) || exit;
 							<p class="ep-notif__title" data-preview-title><?php echo esc_html( $prompt['title'] ); ?></p>
 							<p class="ep-notif__body" data-preview-body><?php echo esc_html( $prompt['body'] ); ?></p>
 							<p style="margin: 12px 0 0; text-align: right;">
-								<span class="button"><?php echo esc_html( $prompt['decline_label'] ); ?></span>
-								<span class="button button-primary"><?php echo esc_html( $prompt['accept_label'] ); ?></span>
+								<span class="button" data-preview-decline><?php echo esc_html( $prompt['decline_label'] ); ?></span>
+								<span class="button button-primary" data-preview-accept><?php echo esc_html( $prompt['accept_label'] ); ?></span>
 							</p>
 						</div>
 					</div>
 
 					<p class="ep-preview__note">
-						<?php esc_html_e( 'A prévia mostra o pré-prompt do site, não a notificação do sistema. A notificação final é desenhada pelo sistema operacional.', 'encontra-push' ); ?>
+						<?php esc_html_e( 'A prévia acompanha a aba aberta. Ela mostra o pré-prompt do site, não a notificação do sistema — essa é desenhada pelo sistema operacional.', 'encontra-push' ); ?>
 					</p>
 				</div>
 			</div>

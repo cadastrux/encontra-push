@@ -270,20 +270,31 @@ class Encontra_Push_Admin {
 	 * resposta. Assim as duas telas nunca divergem: se o painel recusar ou
 	 * normalizar um valor, e a versao dele que fica valendo.
 	 */
-	public function handle_prompt(): void {
-		$this->authorize( 'encontra_push_manage', 'encontra_push_prompt' );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verificado em authorize().
-		$input = isset( $_POST['prompt'] ) ? (array) wp_unslash( $_POST['prompt'] ) : array();
-
-		$payload = array(
+	/**
+	 * Um conjunto de pre-prompt, para desktop ou para celular.
+	 *
+	 * @param array<string, mixed> $input Campos crus do formulario.
+	 * @return array<string, mixed>
+	 */
+	private static function prompt_device( array $input ): array {
+		return array(
 			'mode'                   => sanitize_key( $input['mode'] ?? 'delay' ),
+			/*
+			 * Como a permissao e pedida: `custom` mostra o pre-prompt do site
+			 * antes; `native` abre o pedido do navegador direto.
+			 *
+			 * O direto so funciona no Chromium — Firefox e Safari exigem um
+			 * gesto do usuario e ignoram a chamada feita no carregamento. Nos
+			 * dois, o JavaScript cai no pre-prompt sozinho, senao o visitante
+			 * desses navegadores nunca teria como se inscrever.
+			 */
+			'style'                  => in_array( $input['style'] ?? 'custom', array( 'custom', 'native' ), true )
+				? $input['style']
+				: 'custom',
 			'delay_seconds'          => absint( $input['delay_seconds'] ?? 8 ),
 			'visits'                 => absint( $input['visits'] ?? 2 ),
 			'pageviews'              => absint( $input['pageviews'] ?? 2 ),
 			'css_selector'           => sanitize_text_field( $input['css_selector'] ?? '' ),
-			'desktop'                => ! empty( $input['desktop'] ),
-			'mobile'                 => ! empty( $input['mobile'] ),
 			'redisplay_dismiss_days' => absint( $input['redisplay_dismiss_days'] ?? 7 ),
 			'redisplay_later_days'   => absint( $input['redisplay_later_days'] ?? 30 ),
 			'title'                  => sanitize_text_field( $input['title'] ?? '' ),
@@ -292,6 +303,30 @@ class Encontra_Push_Admin {
 			'decline_label'          => sanitize_text_field( $input['decline_label'] ?? '' ),
 			'position'               => sanitize_key( $input['position'] ?? 'top-center' ),
 		);
+	}
+
+	public function handle_prompt(): void {
+		$this->authorize( 'encontra_push_manage', 'encontra_push_prompt' );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verificado em authorize().
+		$input = isset( $_POST['prompt'] ) ? (array) wp_unslash( $_POST['prompt'] ) : array();
+
+		/*
+		 * Desktop e celular sao dois conjuntos completos. O do desktop fica na
+		 * raiz — formato antigo, mantido para nao migrar o que ja esta
+		 * gravado — e o do celular em `mobile_settings`.
+		 *
+		 * `desktop` e `mobile` continuam sendo os booleanos de "aparece neste
+		 * tipo de aparelho", e valem para os dois conjuntos.
+		 */
+		$payload = self::prompt_device( $input ) + array(
+			'desktop' => ! empty( $input['desktop'] ),
+			'mobile'  => ! empty( $input['mobile'] ),
+		);
+
+		if ( isset( $input['mobile_settings'] ) && is_array( $input['mobile_settings'] ) ) {
+			$payload['mobile_settings'] = self::prompt_device( $input['mobile_settings'] );
+		}
 
 		$result = $this->plugin->api->request_put( array( 'prompt' => $payload ) );
 
@@ -309,21 +344,40 @@ class Encontra_Push_Admin {
 	}
 
 	/** Secao 56 — aparencia. */
-	public function handle_appearance(): void {
-		$this->authorize( 'encontra_push_manage', 'encontra_push_appearance' );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verificado em authorize().
-		$input = isset( $_POST['appearance'] ) ? (array) wp_unslash( $_POST['appearance'] ) : array();
-
-		$payload = array(
+	/**
+	 * Um conjunto de aparencia, para desktop ou para celular.
+	 *
+	 * @param array<string, mixed> $input Campos crus do formulario.
+	 * @return array<string, mixed>
+	 */
+	private static function appearance_device( array $input ): array {
+		return array(
 			'theme'        => sanitize_key( $input['theme'] ?? 'auto' ),
 			// Secao 56: apenas cor hexadecimal. Nada de CSS arbitrario para
 			// quem nao tem unfiltered_html — e nem para quem tem, nesta tela.
 			'accent'       => sanitize_hex_color( $input['accent'] ?? '' ) ?: '#5b4bd6',
 			'button_color' => sanitize_hex_color( $input['button_color'] ?? '' ) ?: '#5b4bd6',
 			'radius'       => absint( $input['radius'] ?? 12 ),
-			'position'     => sanitize_key( $input['position'] ?? 'top-center' ),
+			/*
+			 * `position` NAO entra aqui. A tela de Aparencia tinha um campo de
+			 * posicao que nunca fez nada: o JavaScript do site le
+			 * `prompt.position`, e nao `appearance.position`. Manter os dois
+			 * so criava a duvida de qual valia.
+			 */
 		);
+	}
+
+	public function handle_appearance(): void {
+		$this->authorize( 'encontra_push_manage', 'encontra_push_appearance' );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verificado em authorize().
+		$input = isset( $_POST['appearance'] ) ? (array) wp_unslash( $_POST['appearance'] ) : array();
+
+		$payload = self::appearance_device( $input );
+
+		if ( isset( $input['mobile_settings'] ) && is_array( $input['mobile_settings'] ) ) {
+			$payload['mobile_settings'] = self::appearance_device( $input['mobile_settings'] );
+		}
 
 		$result = $this->plugin->api->request_put( array( 'appearance' => $payload ) );
 

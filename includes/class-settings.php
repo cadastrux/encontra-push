@@ -249,6 +249,8 @@ class Encontra_Push_Settings {
 			(array) ( $config['prompt'] ?? array() ),
 			array(
 				'mode'                    => 'delay',
+				// custom = pre-prompt antes; native = pedido do navegador direto.
+				'style'                   => 'custom',
 				'delay_seconds'           => 8,
 				'visits'                  => 2,
 				'pageviews'               => 2,
@@ -263,6 +265,9 @@ class Encontra_Push_Settings {
 				'decline_label'           => __( 'Agora não', 'encontra-push' ),
 				'position'                => 'top-center',
 				'theme'                   => 'auto',
+				// Conjunto do celular. Vazio significa herdar o desktop, que e
+				// o comportamento de antes de existir separacao por aparelho.
+				'mobile_settings'         => array(),
 			)
 		);
 	}
@@ -278,6 +283,7 @@ class Encontra_Push_Settings {
 				'button_color' => '#5b4bd6',
 				'radius'       => 12,
 				'position'     => 'top-center',
+				'mobile_settings' => array(),
 			)
 		);
 	}

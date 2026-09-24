@@ -105,6 +105,48 @@
         return deviceType() !== 'desktop';
     }
 
+    /*
+     * Configuração resolvida para o aparelho atual.
+     *
+     * O que esta na raiz de `prompt` e de `appearance` e o conjunto do
+     * desktop — era o formato antes de existir configuração por aparelho, e
+     * manter assim significa que nenhum site muda de comportamento ao
+     * atualizar. O conjunto do celular vive em `mobile_settings` e, quando
+     * existe, sobrescreve o da raiz.
+     *
+     * A sobreposição (em vez de troca) importa: se um dia um campo novo for
+     * acrescentado e o conjunto do celular tiver sido gravado antes dele, o
+     * campo cai no valor do desktop em vez de virar indefinido.
+     */
+    function forDevice(group) {
+        var mobile = group && group.mobile_settings;
+
+        if (!isMobile() || !mobile) {
+            return group || {};
+        }
+
+        var out = {};
+        var key;
+
+        for (key in group) {
+            if (Object.prototype.hasOwnProperty.call(group, key)) out[key] = group[key];
+        }
+
+        for (key in mobile) {
+            if (Object.prototype.hasOwnProperty.call(mobile, key)) out[key] = mobile[key];
+        }
+
+        return out;
+    }
+
+    function promptConfig() {
+        return forDevice(config.prompt);
+    }
+
+    function appearanceConfig() {
+        return forDevice(config.appearance);
+    }
+
     function report(event) {
         // Seção 112: contadores do funil de opt-in, sempre agregados.
         try {
@@ -133,7 +175,7 @@
     /* ------------------------------------------------ elegibilidade do prompt */
 
     function shouldShowPrompt() {
-        var prompt = config.prompt || {};
+        var prompt = promptConfig();
 
         if (prompt.mode === 'disabled') return false;
         if (!prompt.desktop && !isMobile()) return false;
@@ -181,8 +223,8 @@
     /* --------------------------------------------------------- pré-prompt */
 
     function buildPrompt() {
-        var prompt = config.prompt || {};
-        var appearance = config.appearance || {};
+        var prompt = promptConfig();
+        var appearance = appearanceConfig();
 
         var root = document.createElement('div');
         root.className = 'ep-prompt ep-prompt--' + (prompt.position || 'top-center')
@@ -535,14 +577,14 @@
 
         if (read('ios_guide_seen')) return;
 
-        var prompt = config.prompt || {};
+        var prompt = promptConfig();
 
         if (prompt.mode === 'disabled') return;
 
         var root = document.createElement('div');
         root.className = 'ep-prompt ep-prompt--bottom-center ep-prompt--ios ep-prompt--theme-'
-            + promptTheme(config.appearance || {}, prompt);
-        applyAppearance(root, config.appearance || {});
+            + promptTheme(appearanceConfig(), prompt);
+        applyAppearance(root, appearanceConfig());
         root.setAttribute('role', 'dialog');
 
         var content = document.createElement('div');
@@ -608,17 +650,20 @@
 
         if (!shouldShowPrompt()) return;
 
-        var prompt = config.prompt || {};
+        var prompt = promptConfig();
 
         switch (prompt.mode) {
             case 'visits':
-                if (counters.visits >= (prompt.visits || 2)) showPrompt();
+                if (counters.visits >= (prompt.visits || 2)) ask();
                 break;
 
             case 'pageviews':
-                if (counters.pageviews >= (prompt.pageviews || 2)) showPrompt();
+                if (counters.pageviews >= (prompt.pageviews || 2)) ask();
                 break;
 
+            // Seletor e manual dependem de um clique, e clique já e a ação do
+            // usuário que autoriza o pedido nativo: os dois modos vão direto
+            // ao navegador, independentemente do estilo escolhido.
             case 'selector':
                 bindSelector(prompt.css_selector);
                 break;
@@ -628,8 +673,68 @@
                 break;
 
             default:
-                setTimeout(showPrompt, (prompt.delay_seconds || 8) * 1000);
+                setTimeout(ask, (prompt.delay_seconds || 8) * 1000);
         }
+    }
+
+    /*
+     * Ponto único de "chegou a hora de pedir".
+     *
+     * `style` decide COMO pedir; o modo (segundos, visitas, páginas) decide
+     * QUANDO. São coisas separadas de propósito: dá para pedir direto o nativo
+     * depois de 3 páginas, ou mostrar o pré-prompt na hora.
+     */
+    function ask() {
+        if (promptConfig().style === 'native') {
+            askNative();
+
+            return;
+        }
+
+        showPrompt();
+    }
+
+    /**
+     * Pedido nativo sem passar pelo pré-prompt.
+     *
+     * Só o Chromium abre esse pedido sem um gesto do usuário. O Firefox
+     * ignora a chamada em silêncio e o Safari a recusa — nos dois, a promessa
+     * volta com "default" (ou estoura), e sem tratamento o visitante desses
+     * navegadores nunca teria como se inscrever. Por isso a queda para o
+     * pré-prompt, que funciona em todos.
+     *
+     * Detectar assim, pelo resultado, e melhor do que olhar o user-agent: o
+     * mesmo caminho cobre o Chrome com pedido silencioso (aquele que vira só
+     * um ícone na barra de endereço), que também devolve "default".
+     */
+    async function askNative() {
+        var permission;
+
+        try {
+            permission = await Notification.requestPermission();
+        } catch (e) {
+            showPrompt();
+
+            return;
+        }
+
+        if (permission === 'granted') {
+            report('native_permission_granted');
+            await subscribe();
+
+            return;
+        }
+
+        if (permission === 'denied') {
+            report('native_permission_denied');
+            // Bloqueio nativo: não insistir mais (seção 113).
+            snooze(365);
+            refreshWidget();
+
+            return;
+        }
+
+        showPrompt();
     }
 
     function bindSelector(selector) {
@@ -803,10 +908,10 @@
         if (!cfg || !cfg.enabled || widget) return;
         if (isMobile() ? !cfg.mobile : !cfg.desktop) return;
 
-        var appearance = config.appearance || {};
+        var appearance = appearanceConfig();
         var side = cfg.position === 'left' ? 'left' : 'right';
 
-        var root = el('div', 'ep-bell ep-bell--' + side + ' ep-prompt--theme-' + promptTheme(appearance, config.prompt || {}));
+        var root = el('div', 'ep-bell ep-bell--' + side + ' ep-prompt--theme-' + promptTheme(appearance, promptConfig()));
         applyAppearance(root, appearance);
         root.style.setProperty('--ep-bell-offset', Math.max(0, Math.min(200, parseInt(cfg.offset, 10) || 20)) + 'px');
 

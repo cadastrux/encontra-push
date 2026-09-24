@@ -4,7 +4,7 @@ Tags: web push, notificações, push notifications, autopush, service worker
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.0.18
+Stable tag: 1.0.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,6 +105,18 @@ Sim. Por padrão, a desinstalação não remove nada. Em
 deve ser apagado ao remover o plugin.
 
 == Changelog ==
+
+= 1.0.19 =
+* Novo: desktop e celular passam a ter configuracoes proprias do pre-prompt —
+  gatilho, textos, botoes, posicao, tema e cores. As telas Solicitacao e
+  Aparencia ganharam abas para os dois. Quem nunca mexer continua com uma
+  configuracao so: o celular herda o desktop ate ser salvo separado.
+* Novo: escolha entre pedir com o pre-prompt do site (padrao) ou abrir o
+  pedido do navegador direto. O direto converte mais, mas quem recusar
+  bloqueia o dominio sem volta. No Firefox e no Safari ele nao abre sem um
+  clique, entao nesses navegadores o pre-prompt aparece do mesmo jeito.
+* Corrigido: o campo Posicao da tela Aparencia nao fazia nada — o site sempre
+  leu a posicao da tela Solicitacao. O campo duplicado foi removido.
 
 = 1.0.18 =
 * Corrigido: o sino ficava por cima do banner de cookies do site. Ele usava
@@ -257,6 +269,9 @@ deve ser apagado ao remover o plugin.
   AutoPush por publicação, rastreio de clique, diagnóstico e métricas.
 
 == Upgrade Notice ==
+
+= 1.0.19 =
+Pre-prompt com configuracao separada para desktop e celular.
 
 = 1.0.18 =
 O sino passa a ficar atras do banner de cookies.
