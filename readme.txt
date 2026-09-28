@@ -4,7 +4,7 @@ Tags: web push, notificações, push notifications, autopush, service worker
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.0.19
+Stable tag: 1.0.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,6 +105,24 @@ Sim. Por padrão, a desinstalação não remove nada. Em
 deve ser apagado ao remover o plugin.
 
 == Changelog ==
+
+= 1.0.20 =
+* Corrigido: a imagem grande da notificacao era escolhida pelo NOME do tamanho
+  do WordPress, e o WordPress devolve o arquivo original, sem avisar, quando o
+  tamanho pedido nao existe. Numa imagem destacada de 280x280 — o WordPress so
+  gera o tamanho "medium" a partir de 300 px — o plugin mandava esse quadrado
+  no campo do banner, o painel anunciava "imagem grande enviada" e o navegador
+  nao tinha o que exibir. A escolha passou a ser por dimensao real.
+* Melhorado: o icone agora usa a menor versao que ainda fica nitida, em vez da
+  maior disponivel. Antes, cada assinante baixava o arquivo grande para ver uma
+  miniatura de 64 px — multiplicado por milhares de assinantes a cada disparo.
+* Nota: quando a imagem destacada esta em pe, ou e um quadrado pequeno, a
+  notificacao sai sem banner de proposito. O piso e 300 px de largura e nao
+  ser retrato — mas 300 px aparece esticado e sem nitidez. Para ficar bom,
+  1200x600 e a medida.
+* Anexo sem metadados no WordPress (automacao que grava o arquivo sem chamar
+  wp_generate_attachment_metadata) continua funcionando como antes: sem
+  dimensao para consultar, a URL do arquivo vai direto, sem julgamento.
 
 = 1.0.19 =
 * Novo: desktop e celular passam a ter configuracoes proprias do pre-prompt —
@@ -269,6 +287,10 @@ deve ser apagado ao remover o plugin.
   AutoPush por publicação, rastreio de clique, diagnóstico e métricas.
 
 == Upgrade Notice ==
+
+= 1.0.20 =
+A imagem grande volta a funcionar: era escolhida pelo nome do tamanho e virava
+um quadrado pequeno. Pede imagem destacada deitada; 1200x600 e a medida boa.
 
 = 1.0.19 =
 Pre-prompt com configuracao separada para desktop e celular.

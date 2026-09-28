@@ -150,35 +150,53 @@ class Encontra_Push_Publisher {
 		$categories = wp_get_post_terms( $post->ID, 'category', array( 'fields' => 'slugs' ) );
 		$tags       = wp_get_post_terms( $post->ID, 'post_tag', array( 'fields' => 'slugs' ) );
 
-		$image = get_the_post_thumbnail_url( $post, 'large' );
-
 		/*
 		 * Duas versoes da imagem destacada, porque a notificacao usa as duas de
 		 * formas diferentes:
 		 *
-		 *   image — a imagem grande, que o Chrome mostra ao expandir;
+		 *   image — o banner deitado que o Chrome mostra ao expandir;
 		 *   icon  — a miniatura quadrada ao lado do texto, sempre visivel.
 		 *
-		 * Mandar a versao grande como icone gastaria banda do visitante a toa:
-		 * o navegador a exibe com cerca de 64 px.
+		 * A escolha e feita por DIMENSAO, e nao por nome de tamanho. O motivo:
+		 * get_the_post_thumbnail_url( $post, 'large' ) devolve o arquivo
+		 * ORIGINAL quando o tamanho 'large' nao existe, sem dizer que fez isso.
+		 * Numa imagem destacada de 280x280 — o WordPress so gera 'medium' a
+		 * partir de 300 px de largura — 'large' e 'medium' voltavam os dois o
+		 * mesmo quadrado de 280 px, e o plugin mandava esse quadrado no campo
+		 * do banner. O painel anunciava "imagem grande enviada" e o Chrome nao
+		 * tinha o que exibir, porque um quadrado pequeno nao preenche um espaco
+		 * deitado de proporcao 2:1.
+		 *
+		 * wp_get_attachment_image_src() devolve largura e altura junto com a
+		 * URL, entao da para decidir com o dado na mao em vez de confiar no
+		 * nome do tamanho.
 		 */
-		$thumb = get_the_post_thumbnail_url( $post, 'medium' );
+		$attachment_id = (int) get_post_thumbnail_id( $post );
+
+		$image = $attachment_id ? $this->banner_url( $attachment_id ) : false;
+		$thumb = $attachment_id ? $this->miniatura_url( $attachment_id ) : false;
 
 		/**
 		 * Permite ao site fornecer a imagem por outro caminho.
 		 *
-		 * get_the_post_thumbnail_url() so enxerga a imagem destacada NATIVA
-		 * (_thumbnail_id). Tema ou plugin que guarde a capa num campo proprio
-		 * fica de fora, e a notificacao sai sem imagem sem que nada acuse o
-		 * motivo. Este filtro e a saida para esse caso:
+		 * A busca acima so enxerga a imagem destacada NATIVA (_thumbnail_id).
+		 * Tema ou plugin que guarde a capa num campo proprio fica de fora, e a
+		 * notificacao sai sem imagem sem que nada acuse o motivo. Este filtro e
+		 * a saida para esse caso:
 		 *
 		 *   add_filter( 'encontra_push_post_image', function ( $url, $post, $tamanho ) {
 		 *       return $url ?: get_post_meta( $post->ID, 'minha_capa', true );
 		 *   }, 10, 3 );
 		 *
-		 * @param string|false $url     URL encontrada, ou false.
+		 * O filtro vem DEPOIS da escolha por dimensao, e nao antes: uma URL
+		 * dada pelo site passa direto, sem medicao. Nao ha como medi-la sem
+		 * baixar o arquivo, e baixar imagem a cada publicacao atrasaria o
+		 * gancho de publicacao do WordPress. Quem usa o filtro assume a
+		 * responsabilidade de mandar um banner deitado em 'large'.
+		 *
+		 * @param string|false $url     URL escolhida, ou false quando nenhuma serve.
 		 * @param WP_Post      $post    Post publicado.
-		 * @param string       $tamanho Tamanho pedido ('large' ou 'medium').
+		 * @param string       $tamanho 'large' para o banner deitado, 'medium' para o icone.
 		 */
 		$image = apply_filters( 'encontra_push_post_image', $image, $post, 'large' );
 		$thumb = apply_filters( 'encontra_push_post_image', $thumb, $post, 'medium' );
@@ -202,6 +220,168 @@ class Encontra_Push_Publisher {
 			'source_event_id'  => 'wp:' . $post->ID . ':' . $post->post_date_gmt,
 			'override'         => $override,
 		);
+	}
+
+	/**
+	 * Largura minima para uma imagem valer como banner.
+	 *
+	 * O numero vem do que se observou renderizar, e nao de uma especificacao:
+	 * um WebP de 300x200 aparece no Chrome (esticado e sem nitidez, mas
+	 * aparece), enquanto um quadrado de 280x280 no mesmo lugar nao produz
+	 * banner util. O corte fica logo acima do primeiro, para nao derrubar o
+	 * que hoje funciona, e logo abaixo do segundo, que era o defeito.
+	 *
+	 * Deitada e bonita comeca perto de 1200x600; isto aqui e o piso, nao o
+	 * alvo.
+	 */
+	private const BANNER_LARGURA_MINIMA = 300;
+
+	/**
+	 * Acima disto o arquivo so gasta banda: o navegador exibe o banner em
+	 * algumas centenas de pixels, e quem recebe costuma estar no celular.
+	 */
+	private const BANNER_LARGURA_MAXIMA = 1600;
+
+	/**
+	 * A melhor versao da imagem destacada para o banner deitado.
+	 *
+	 * Devolve false quando nenhuma versao serve — e nesse caso a notificacao
+	 * sai sem banner, de proposito. Mandar um quadrado pequeno neste campo e
+	 * pior que nao mandar nada: o navegador estica, corta ou descarta, e o
+	 * painel fica dizendo que enviou uma imagem que ninguem viu.
+	 *
+	 * @return string|false
+	 */
+	private function banner_url( int $attachment_id ) {
+		$candidatas = $this->versoes( $attachment_id, array( 'large', 'medium_large', 'full' ) );
+
+		// Nenhuma medida: nao da para julgar, entao nao se julga.
+		if ( ! $candidatas ) {
+			return $this->sem_medidas( $attachment_id );
+		}
+
+		$servem = array_filter(
+			$candidatas,
+			static function ( array $v ): bool {
+				// Deitada, ou perto disso. Uma foto em pe no lugar do banner
+				// aparece cortada na cabeca de quem esta na imagem.
+				return $v['w'] >= self::BANNER_LARGURA_MINIMA && $v['w'] >= $v['h'];
+			}
+		);
+
+		if ( ! $servem ) {
+			return false;
+		}
+
+		/*
+		 * Entre as que servem, a maior que ainda cabe no teto. Com um original
+		 * de 1200x600 isso escolhe o proprio original; com um de 4000x2000
+		 * escolhe o 'large' de 1024, evitando mandar 4000 px para um espaco
+		 * que nunca passa de algumas centenas.
+		 */
+		$noTeto = array_values(
+			array_filter(
+				$servem,
+				static fn( array $v ): bool => $v['w'] <= self::BANNER_LARGURA_MAXIMA
+			)
+		);
+
+		if ( $noTeto ) {
+			usort( $noTeto, static fn( array $a, array $b ): int => $b['w'] <=> $a['w'] );
+
+			return $noTeto[0]['url'];
+		}
+
+		// Todas passam do teto: fica a menor, que e a menos pesada.
+		$servem = array_values( $servem );
+		usort( $servem, static fn( array $a, array $b ): int => $a['w'] <=> $b['w'] );
+
+		return $servem[0]['url'];
+	}
+
+	/**
+	 * A melhor versao para o icone: o menor quadrado que ainda fica nitido.
+	 *
+	 * O navegador exibe este espaco com algo entre 64 e 192 px. Mandar o
+	 * arquivo grande aqui faz cada assinante baixar centenas de kB para ver
+	 * uma miniatura — e sao milhares de assinantes por disparo.
+	 *
+	 * @return string|false
+	 */
+	private function miniatura_url( int $attachment_id ) {
+		$candidatas = $this->versoes( $attachment_id, array( 'thumbnail', 'medium', 'full' ) );
+
+		if ( ! $candidatas ) {
+			return $this->sem_medidas( $attachment_id );
+		}
+
+		$nitidas = array_values(
+			array_filter(
+				$candidatas,
+				static fn( array $v ): bool => $v['w'] >= 96
+			)
+		);
+
+		$escolhidas = $nitidas ? $nitidas : $candidatas;
+
+		// A menor que ainda serve: e a que menos custa a quem recebe.
+		usort( $escolhidas, static fn( array $a, array $b ): int => $a['w'] <=> $b['w'] );
+
+		return $escolhidas[0]['url'];
+	}
+
+	/**
+	 * Saida para o anexo cujas dimensoes o WordPress nao conhece.
+	 *
+	 * Existe porque isto acontece de verdade, e nao e caso de canto: uma
+	 * automacao que grava o arquivo e aponta _thumbnail_id sem chamar
+	 * wp_generate_attachment_metadata() deixa o anexo sem _wp_attachment_metadata.
+	 * Sem esse registro, image_downsize() devolve false e
+	 * wp_get_attachment_image_src() devolve false para TODOS os tamanhos —
+	 * inclusive 'full'. Medir aqui exigiria abrir o arquivo a cada publicacao.
+	 *
+	 * Nesse caso a escolha por dimensao simplesmente nao se aplica, e a regra
+	 * passa a ser a antiga: manda a URL do arquivo e deixa o navegador decidir.
+	 * Uma melhoria nao pode transformar "imagem as vezes ruim" em "nunca
+	 * imagem" para quem depende desse caminho.
+	 *
+	 * @return string|false
+	 */
+	private function sem_medidas( int $attachment_id ) {
+		$url = wp_get_attachment_url( $attachment_id );
+
+		return $url ? $url : false;
+	}
+
+	/**
+	 * URLs e dimensoes reais das versoes pedidas, sem repeticao.
+	 *
+	 * A deduplicacao pela URL e o coracao disto: quando um tamanho registrado
+	 * nao existe, o WordPress devolve o arquivo original em vez de avisar.
+	 * Sem dedupe, o mesmo arquivo apareceria tres vezes e pareceria haver
+	 * escolha onde nao ha nenhuma.
+	 *
+	 * @param  string[] $tamanhos Nomes de tamanho do WordPress.
+	 * @return array<int, array{url: string, w: int, h: int}>
+	 */
+	private function versoes( int $attachment_id, array $tamanhos ): array {
+		$porUrl = array();
+
+		foreach ( $tamanhos as $tamanho ) {
+			$src = wp_get_attachment_image_src( $attachment_id, $tamanho );
+
+			if ( ! is_array( $src ) || empty( $src[0] ) || empty( $src[1] ) ) {
+				continue;
+			}
+
+			$porUrl[ $src[0] ] = array(
+				'url' => (string) $src[0],
+				'w'   => (int) $src[1],
+				'h'   => (int) $src[2],
+			);
+		}
+
+		return array_values( $porUrl );
 	}
 
 	private function excerpt( WP_Post $post ): string {
