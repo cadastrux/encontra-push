@@ -43,10 +43,28 @@ class Encontra_Push_Subscription {
 
 		$source_url = esc_url_raw( (string) $request->get_param( 'source_url' ) );
 
+		/*
+		 * Identidade do navegador, gerada pelo proprio visitante e guardada no
+		 * armazenamento do site. Nao identifica a pessoa e nao atravessa
+		 * dominios: serve para o painel reconhecer que dois endpoints vieram do
+		 * mesmo navegador, porque o endpoint troca (cancelar e voltar, girar a
+		 * chave VAPID, o Chrome renovar o token) e sem isso cada troca virava
+		 * um assinante novo com o anterior contando como ativo para sempre.
+		 *
+		 * Formato fechado: o valor vem do cliente e o painel o indexa.
+		 */
+		$client_id = strtolower( sanitize_text_field( (string) $request->get_param( 'client_id' ) ) );
+		$client_id = preg_match( '/^[a-f0-9]{32}$/', $client_id ) ? $client_id : null;
+
 		return array(
 			'endpoint'         => $endpoint,
 			'p256dh'           => $p256dh,
 			'auth'             => $auth,
+			'client_id'        => $client_id,
+			// Gesto explicito: o visitante pediu para voltar pelo sino ou
+			// aceitou o pedido de permissao. So com isto o painel reinscreve
+			// quem ja tinha saido.
+			'resubscribe'      => (bool) $request->get_param( 'resubscribe' ),
 			'content_encoding' => in_array( $request->get_param( 'content_encoding' ), array( 'aes128gcm', 'aesgcm' ), true )
 				? (string) $request->get_param( 'content_encoding' )
 				: 'aes128gcm',

@@ -238,6 +238,13 @@ class Encontra_Push_Rest {
 			array(
 				'ok'      => true,
 				'created' => (bool) ( $result['data']['created'] ?? false ),
+				/*
+				 * O painel recusou reinscrever quem ja tinha saido. Precisa
+				 * chegar ao navegador: e assim que uma saida feita no painel
+				 * alcanca o visitante, que de outro modo tentaria se inscrever
+				 * a cada visita e tomaria a mesma recusa em silencio.
+				 */
+				'opted_out' => (bool) ( $result['data']['opted_out'] ?? false ),
 			),
 			201
 		);
@@ -358,9 +365,14 @@ class Encontra_Push_Rest {
 
 	private function subscription_args(): array {
 		return array(
-			'endpoint' => array( 'required' => true, 'type' => 'string' ),
-			'p256dh'   => array( 'required' => true, 'type' => 'string' ),
-			'auth'     => array( 'required' => true, 'type' => 'string' ),
+			'endpoint'  => array( 'required' => true, 'type' => 'string' ),
+			'p256dh'    => array( 'required' => true, 'type' => 'string' ),
+			'auth'      => array( 'required' => true, 'type' => 'string' ),
+			// Opcional de proposito: navegador com armazenamento bloqueado nao
+			// consegue guardar o identificador, e perder a inscricao por causa
+			// disso seria pior que perder a deduplicacao.
+			'client_id' => array( 'required' => false, 'type' => 'string' ),
+			'resubscribe' => array( 'required' => false, 'type' => 'boolean' ),
 		);
 	}
 

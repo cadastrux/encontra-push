@@ -4,7 +4,7 @@ Tags: web push, notificações, push notifications, autopush, service worker
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.0.20
+Stable tag: 1.0.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,6 +105,25 @@ Sim. Por padrão, a desinstalação não remove nada. Em
 deve ser apagado ao remover o plugin.
 
 == Changelog ==
+
+= 1.0.21 =
+* Corrigido: quem cancelava voltava a ser inscrito sozinho. A permissao do
+  navegador continua concedida depois do cancelamento, o plugin reenvia a
+  subscription a cada visita, e o painel reativava a linha sem olhar o estado
+  anterior. A unica barreira era um flag no navegador do visitante — que nao
+  existe quando a saida veio do painel, e some quando ele limpa os dados do
+  site. Agora quem lembra e o servidor, e voltar exige gesto explicito.
+* Corrigido: o mesmo aparelho virava varios assinantes. A identidade era o
+  endpoint do push, que NAO e estavel — troca ao cancelar e voltar, ao girar a
+  chave VAPID, quando o Chrome renova o token do FCM. A cada troca nascia uma
+  linha e a antiga ficava ativa para sempre, porque o endpoint velho costuma
+  seguir valido no Push Service e o 410 que o aposentaria nunca chegava. O
+  resultado era base inflada, a mesma pessoa recebendo (e sendo paga) mais de
+  uma vez, e taxa de clique dividida por um denominador maior que a realidade.
+* Novo: o plugin passa a enviar um identificador aleatorio deste navegador,
+  guardado no armazenamento do proprio site. Nao identifica a pessoa e nao
+  atravessa dominios — serve so para o painel reconhecer que dois endpoints
+  vieram do mesmo navegador e aposentar o anterior.
 
 = 1.0.20 =
 * Corrigido: a imagem grande da notificacao era escolhida pelo NOME do tamanho
@@ -287,6 +306,10 @@ deve ser apagado ao remover o plugin.
   AutoPush por publicação, rastreio de clique, diagnóstico e métricas.
 
 == Upgrade Notice ==
+
+= 1.0.21 =
+Quem cancelava voltava a ser inscrito sozinho, e o mesmo aparelho contava como
+varios assinantes. Exige a migration do painel (client_id em subscriptions).
 
 = 1.0.20 =
 A imagem grande volta a funcionar: era escolhida pelo nome do tamanho e virava

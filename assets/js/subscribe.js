@@ -95,6 +95,50 @@
         return match ? decodeURIComponent(match[2]) : null;
     }
 
+    /**
+     * Identificador deste navegador, estavel entre trocas de endpoint.
+     *
+     * O endpoint do push NAO e estavel: muda quando a pessoa cancela e volta,
+     * quando a chave VAPID do site gira, quando o Chrome renova o token do
+     * FCM. Como a identidade no painel era o endpoint, cada troca criava um
+     * assinante novo e o anterior ficava ativo para sempre — o endpoint velho
+     * costuma seguir valido no Push Service, entao o 410 que o aposentaria
+     * nunca chegava. Dai a base inflada e a mesma pessoa recebendo duas vezes.
+     *
+     * Isto nao identifica a PESSOA: e um numero aleatorio, preso a este site,
+     * que serve so para dizer "estes dois endpoints sao do mesmo navegador".
+     * Limpar os dados do site o descarta, e a linha antiga fica orfa — igual
+     * ao que ja acontecia, nunca pior.
+     */
+    function clientId() {
+        var atual = read('client_id');
+
+        if (atual && /^[a-f0-9]{32}$/.test(atual)) {
+            return atual;
+        }
+
+        var novo = '';
+
+        // crypto.randomUUID nao existe em todo navegador que ainda recebe push.
+        if (window.crypto && window.crypto.getRandomValues) {
+            var bytes = new Uint8Array(16);
+            window.crypto.getRandomValues(bytes);
+
+            for (var i = 0; i < bytes.length; i++) {
+                novo += (bytes[i] + 0x100).toString(16).slice(1);
+            }
+        } else {
+            // Sem crypto o valor so precisa nao colidir com o do vizinho.
+            for (var j = 0; j < 32; j++) {
+                novo += Math.floor(Math.random() * 16).toString(16);
+            }
+        }
+
+        store('client_id', novo);
+
+        return novo;
+    }
+
     function deviceType() {
         if (/iPad|Tablet/i.test(navigator.userAgent)) return 'tablet';
         if (/Mobi|iPhone|Android.*Mobile/i.test(navigator.userAgent)) return 'mobile';
@@ -367,10 +411,10 @@
 
         report('native_permission_granted');
 
-        await subscribe();
+        await subscribe(true);
     }
 
-    async function subscribe() {
+    async function subscribe(pedidoExplicito) {
         try {
             var registration = await registerServiceWorker();
 
@@ -404,7 +448,7 @@
                 });
             }
 
-            await sendSubscription(subscription);
+            await sendSubscription(subscription, pedidoExplicito === true);
         } catch (e) {
             // Antes este bloco era vazio, e toda falha de inscrição virava um
             // assinante que simplesmente nunca chegava ao painel. Uma linha no
@@ -512,7 +556,7 @@
         return readyWithTimeout(15000);
     }
 
-    async function sendSubscription(subscription) {
+    async function sendSubscription(subscription, pedidoExplicito) {
         var json = subscription.toJSON();
         var params = new URLSearchParams(window.location.search);
 
@@ -523,6 +567,8 @@
                 endpoint: json.endpoint,
                 p256dh: json.keys && json.keys.p256dh,
                 auth: json.keys && json.keys.auth,
+                client_id: clientId(),
+                resubscribe: pedidoExplicito === true,
                 expiration_time: subscription.expirationTime || null,
                 language: navigator.language,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -541,6 +587,35 @@
         if (!response.ok) {
             log('o site recusou a inscrição (HTTP ' + response.status + '). Veja Encontra Push > Diagnóstico.');
             widgetError = 'O site não conseguiu registrar a inscrição agora. Tente de novo em instantes.';
+
+            return;
+        }
+
+        /*
+         * O painel recusou reinscrever: esta pessoa ja tinha pedido para sair,
+         * e a saida vale mesmo que o navegador nao soubesse dela.
+         *
+         * E o caso de quem foi cancelado pelo painel, ou de quem saiu num
+         * navegador que depois perdeu o armazenamento. Antes nada disso
+         * chegava aqui: a permissao continuava concedida, o plugin reenviava a
+         * subscription a cada visita e o painel reativava a linha sem olhar o
+         * estado anterior — a pessoa voltava a receber sozinha.
+         *
+         * Gravar a recusa e o que faz o navegador parar de tentar. Voltar
+         * exige gesto explicito no sino, que limpa este estado.
+         */
+        var corpo = null;
+
+        try {
+            corpo = await response.json();
+        } catch (e) { /* resposta sem corpo: segue como inscrição normal */ }
+
+        if (corpo && corpo.opted_out) {
+            store('unsubscribed', '1');
+            store('subscribed', '0');
+            log('este navegador havia cancelado; o painel não reinscreveu.');
+
+            refreshWidget();
 
             return;
         }
@@ -720,7 +795,7 @@
 
         if (permission === 'granted') {
             report('native_permission_granted');
-            await subscribe();
+            await subscribe(true);
 
             return;
         }
@@ -1247,7 +1322,7 @@
             try {
                 // Permissão já concedida (ex.: parou de receber antes): só inscreve.
                 if (Notification.permission === 'granted') {
-                    await subscribe();
+                    await subscribe(true);
                 } else {
                     await requestPermission();
                 }
