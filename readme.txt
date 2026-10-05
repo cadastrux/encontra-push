@@ -4,7 +4,7 @@ Tags: web push, notificações, push notifications, autopush, service worker
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
-Stable tag: 1.0.21
+Stable tag: 1.0.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,6 +105,17 @@ Sim. Por padrão, a desinstalação não remove nada. Em
 deve ser apagado ao remover o plugin.
 
 == Changelog ==
+
+= 1.0.22 =
+* Corrigido: o navegador podia seguir usando uma versao antiga do script por
+  ate um ano depois da atualizacao. O plugin informa a versao no enqueue, mas
+  a otimizacao "remover query strings de recursos estaticos" — presente em
+  varios plugins de velocidade e temas — apagava o ?ver= da URL. Sem ele a URL
+  nunca muda, e com Cache-Control de um ano o arquivo antigo fica. O sintoma
+  era invisivel: codigo novo no servidor, navegadores rodando o antigo, e
+  inscricoes entrando sem os campos que a versao nova envia.
+* O plugin agora devolve o ?ver= nos proprios arquivos, em prioridade maxima
+  para rodar depois de quem remove. Nao mexe nos arquivos de terceiros.
 
 = 1.0.21 =
 * Corrigido: quem cancelava voltava a ser inscrito sozinho. A permissao do
@@ -306,6 +317,10 @@ deve ser apagado ao remover o plugin.
   AutoPush por publicação, rastreio de clique, diagnóstico e métricas.
 
 == Upgrade Notice ==
+
+= 1.0.22 =
+Navegadores podiam ficar presos a uma versao antiga do script por ate um ano
+apos a atualizacao. Esta versao devolve o controle de versao da URL.
 
 = 1.0.21 =
 Quem cancelava voltava a ser inscrito sozinho, e o mesmo aparelho contava como

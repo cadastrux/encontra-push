@@ -19,8 +19,56 @@ class Encontra_Push_Frontend {
 
 	public function register(): void {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
+
+		/*
+		 * Devolve o ?ver= que outro plugin ou o tema tiraram.
+		 *
+		 * O enqueue abaixo ja informa a versao, e o WordPress a imprime como
+		 * ?ver=1.0.21. Mas a otimizacao "remover query strings de recursos
+		 * estaticos" — presente em varios plugins de velocidade e em muitos
+		 * temas — apaga esse trecho achando que ajuda o cache. Ajuda: o arquivo
+		 * passa a ser cacheado para sempre, inclusive quando muda.
+		 *
+		 * O efeito observado foi caro e silencioso: o servidor servia o
+		 * subscribe.js novo com Cache-Control de um ano e sem query, e os
+		 * navegadores que ja tinham o antigo seguiam com ele. Resultado:
+		 * inscricoes entrando sem client_id semanas depois da atualizacao, sem
+		 * nada acusando — o painel so via o sintoma.
+		 *
+		 * Prioridade maxima para rodar DEPOIS de quem remove. Nao e a preve: um
+		 * removedor que tambem rode em PHP_INT_MAX venceria. E a defesa
+		 * proporcional ao problema, sem inventar rota nova para um arquivo
+		 * estatico.
+		 */
+		add_filter( 'script_loader_src', array( $this, 'keep_version' ), PHP_INT_MAX, 2 );
+		add_filter( 'style_loader_src', array( $this, 'keep_version' ), PHP_INT_MAX, 2 );
 		add_action( 'wp_head', array( $this, 'manifest_link' ), 2 );
 		add_action( 'init', array( $this, 'manifest_route' ) );
+	}
+
+	/**
+	 * Garante o ?ver= nos NOSSOS arquivos, e so neles.
+	 *
+	 * Mexer no que e dos outros seria desfazer uma escolha do site. Aqui o
+	 * alcance e o proprio plugin, onde a versao nao e enfeite: ela e o unico
+	 * jeito de um navegador saber que o script mudou.
+	 *
+	 * @param string $src    URL do recurso.
+	 * @param string $handle Identificador registrado.
+	 */
+	public function keep_version( $src, $handle ): string {
+		$src = (string) $src;
+
+		if ( 'encontra-push' !== $handle ) {
+			return $src;
+		}
+
+		// Ja tem versao: nada a fazer.
+		if ( false !== strpos( $src, 'ver=' ) ) {
+			return $src;
+		}
+
+		return add_query_arg( 'ver', ENCONTRA_PUSH_VERSION, $src );
 	}
 
 	public function enqueue(): void {
