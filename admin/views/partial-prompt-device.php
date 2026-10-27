@@ -24,6 +24,7 @@ defined( 'ABSPATH' ) || exit;
 				<?php
 				$ep_modes = array(
 					'delay'     => __( 'Após X segundos', 'encontra-push' ),
+					'scroll'    => __( 'Ao rolar X% da página', 'encontra-push' ),
 					'visits'    => __( 'Após X visitas', 'encontra-push' ),
 					'pageviews' => __( 'Após X páginas na sessão', 'encontra-push' ),
 					'selector'  => __( 'Ao clicar em um seletor CSS', 'encontra-push' ),
@@ -80,6 +81,16 @@ defined( 'ABSPATH' ) || exit;
 				<input type="number" min="1" max="50" name="<?php echo esc_attr( $ep_prefix ); ?>[pageviews]"
 				       value="<?php echo esc_attr( $ep_p['pageviews'] ?? 2 ); ?>" class="small-text">
 			</label>
+
+			<label style="margin-left: 12px;">
+				<?php esc_html_e( 'Rolagem (%)', 'encontra-push' ); ?>
+				<input type="number" min="1" max="100" name="<?php echo esc_attr( $ep_prefix ); ?>[scroll_percent]"
+				       value="<?php echo esc_attr( $ep_p['scroll_percent'] ?? 20 ); ?>" class="small-text">
+			</label>
+
+			<p class="description">
+				<?php esc_html_e( 'A rolagem vale para o modo "Ao rolar X% da página": o convite espera o visitante descer essa fração do conteúdo. Entre 10% e 20% o leitor já demonstrou interesse sem ter chegado ao fim. Em página curta demais para rolar, o convite aparece assim que ela termina de carregar.', 'encontra-push' ); ?>
+			</p>
 		</td>
 	</tr>
 

@@ -14,7 +14,8 @@ class Encontra_Push_Frontend {
 
 	public function __construct(
 		private Encontra_Push_Settings $settings,
-		private Encontra_Push_Widget $widget
+		private Encontra_Push_Widget $widget,
+		private Encontra_Push_Url_Rules $url_rules
 	) {}
 
 	public function register(): void {
@@ -79,9 +80,27 @@ class Encontra_Push_Frontend {
 		$prompt = $this->settings->prompt_config();
 		$widget = $this->widget->client_config();
 
+		/*
+		 * A regra por URL e resolvida aqui, no servidor, e nao no navegador.
+		 *
+		 * Duas razoes. A pagina ja e cacheada por URL, entao cada endereco
+		 * guarda o HTML com a SUA regra ja aplicada — nao ha o que dar errado
+		 * com cache. E o visitante recebe so os campos da pagina em que esta,
+		 * em vez da lista inteira de regras do site em toda pageview.
+		 */
+		$overrides = $this->url_rules->overrides_for_current();
+
+		/*
+		 * O modo que vale e o da regra, quando ela mexe nele. Sem isto, uma
+		 * regra que desliga o convite numa pagina ainda carregaria o script, e
+		 * uma que LIGA o convite num site com o convite desligado nao
+		 * carregaria nada — e nunca funcionaria.
+		 */
+		$modo = (string) ( $overrides['mode'] ?? $prompt['mode'] ?? '' );
+
 		// Convite desligado E sino desligado: nada a carregar. Com o sino
 		// ligado, o script vem mesmo sem o convite automatico.
-		if ( 'disabled' === ( $prompt['mode'] ?? '' ) && null === $widget ) {
+		if ( 'disabled' === $modo && null === $widget ) {
 			return;
 		}
 
@@ -108,6 +127,9 @@ class Encontra_Push_Frontend {
 				'serviceWorker'   => home_url( '/' . ENCONTRA_PUSH_SW_PATH ),
 				'integrationMode' => $this->settings->integration_mode(),
 				'prompt'          => $prompt,
+				// Campos da regra desta URL. Aplicados por ultimo, depois do
+				// conjunto do aparelho — a regra e a escolha mais especifica.
+				'promptOverrides' => $overrides,
 				'appearance'      => $this->settings->appearance_config(),
 				'widget'          => $widget,
 				'endpoints'       => array(

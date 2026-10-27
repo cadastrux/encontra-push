@@ -80,6 +80,7 @@ if ( $remove_local || $revoke_remote ) {
 	delete_option( 'encontra_push_db_version' );
 	delete_option( 'encontra_push_uninstall_options' );
 	delete_option( 'encontra_push_widget' );
+	delete_option( 'encontra_push_url_rules' );
 	delete_option( 'encontra_push_version' );
 	delete_transient( 'encontra_push_widget_items' );
 

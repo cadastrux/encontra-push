@@ -169,22 +169,40 @@
             return group || {};
         }
 
+        return sobrepor(group, mobile);
+    }
+
+    /** Cópia de `base` com os campos de `extra` por cima. Nenhum é alterado. */
+    function sobrepor(base, extra) {
         var out = {};
         var key;
 
-        for (key in group) {
-            if (Object.prototype.hasOwnProperty.call(group, key)) out[key] = group[key];
+        for (key in base) {
+            if (Object.prototype.hasOwnProperty.call(base, key)) out[key] = base[key];
         }
 
-        for (key in mobile) {
-            if (Object.prototype.hasOwnProperty.call(mobile, key)) out[key] = mobile[key];
+        for (key in extra) {
+            if (Object.prototype.hasOwnProperty.call(extra, key)) out[key] = extra[key];
         }
 
         return out;
     }
 
+    /*
+     * Camadas, da mais geral para a mais específica:
+     *
+     *   1. `prompt`                — a configuração do site (desktop);
+     *   2. `prompt.mobile_settings` — o conjunto do celular, se houver;
+     *   3. `promptOverrides`        — a regra da URL desta página.
+     *
+     * A regra vem por último de propósito: ela é a escolha mais específica que
+     * o operador fez, e tem de valer tanto no desktop quanto no celular. O PHP
+     * já mandou só os campos que a regra preenche, então o que ela não cita
+     * continua herdado — inclusive campos que ainda nem existiam quando a
+     * regra foi criada.
+     */
     function promptConfig() {
-        return forDevice(config.prompt);
+        return sobrepor(forDevice(config.prompt), config.promptOverrides || {});
     }
 
     function appearanceConfig() {
@@ -728,6 +746,10 @@
         var prompt = promptConfig();
 
         switch (prompt.mode) {
+            case 'scroll':
+                bindScroll(prompt.scroll_percent || 20);
+                break;
+
             case 'visits':
                 if (counters.visits >= (prompt.visits || 2)) ask();
                 break;
@@ -810,6 +832,73 @@
         }
 
         showPrompt();
+    }
+
+    /**
+     * Dispara quando o visitante rolou a fração pedida da página.
+     *
+     * A conta e sobre o que HA para rolar (`scrollHeight - innerHeight`), e
+     * não sobre a altura do documento: numa matéria de 6.000px numa janela de
+     * 900px, rolar 20% significa descer 1.020px, e não 1.200px. Medir a cada
+     * evento, em vez de uma vez só, importa porque imagem que chega depois,
+     * bloco de comentários e anúncio esticam o documento enquanto a pessoa lê.
+     */
+    function bindScroll(percent) {
+        var alvo = Math.min(100, Math.max(1, parseInt(percent, 10) || 20));
+        var disparado = false;
+
+        function fracao() {
+            var rolavel = document.documentElement.scrollHeight - window.innerHeight;
+
+            // Documento menor que a janela: não ha rolagem, e a fração não
+            // existe. Devolver 0 faria o gatilho esperar para sempre.
+            if (rolavel <= 0) return null;
+
+            var rolado = window.scrollY || document.documentElement.scrollTop || 0;
+
+            return (rolado / rolavel) * 100;
+        }
+
+        function disparar() {
+            if (disparado) return;
+
+            disparado = true;
+            window.removeEventListener('scroll', aoRolar);
+            window.removeEventListener('resize', aoRolar);
+            ask();
+        }
+
+        function aoRolar() {
+            var atual = fracao();
+
+            if (atual !== null && atual >= alvo) disparar();
+        }
+
+        window.addEventListener('scroll', aoRolar, { passive: true });
+        window.addEventListener('resize', aoRolar, { passive: true });
+
+        // Ao voltar pelo histórico o navegador restaura a posição: a pessoa
+        // pode já estar além do limite sem gerar nenhum evento de rolagem.
+        aoRolar();
+
+        /*
+         * Página curta demais para rolar nunca geraria o evento, e o convite
+         * nunca apareceria — o gatilho viraria um "desativado" silencioso.
+         * Nesse caso ele sai assim que a página termina de carregar.
+         *
+         * A checagem espera o load de propósito: antes dele a imagem que ainda
+         * falta esticaria o documento, e uma matéria longa seria confundida
+         * com uma página curta.
+         */
+        function conferirPaginaCurta() {
+            if (fracao() === null) disparar();
+        }
+
+        if (document.readyState === 'complete') {
+            conferirPaginaCurta();
+        } else {
+            window.addEventListener('load', conferirPaginaCurta);
+        }
     }
 
     function bindSelector(selector) {

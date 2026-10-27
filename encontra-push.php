@@ -3,7 +3,7 @@
  * Plugin Name:       Encontra Push
  * Plugin URI:        https://push.encontra.com.br
  * Description:       Conecta este site ao painel Encontra Push: captura de assinantes, Service Worker, AutoPush por publicacao, rastreio de clique e metricas no proprio wp-admin.
- * Version:           1.0.22
+ * Version:           1.0.23
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Author:            Encontra
@@ -19,7 +19,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ENCONTRA_PUSH_VERSION', '1.0.22' );
+define( 'ENCONTRA_PUSH_VERSION', '1.0.23' );
 define( 'ENCONTRA_PUSH_FILE', __FILE__ );
 define( 'ENCONTRA_PUSH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ENCONTRA_PUSH_URL', plugin_dir_url( __FILE__ ) );
@@ -44,6 +44,7 @@ require_once ENCONTRA_PUSH_DIR . 'includes/class-publisher.php';
 require_once ENCONTRA_PUSH_DIR . 'includes/class-tracking.php';
 require_once ENCONTRA_PUSH_DIR . 'includes/class-diagnostics.php';
 require_once ENCONTRA_PUSH_DIR . 'includes/class-widget.php';
+require_once ENCONTRA_PUSH_DIR . 'includes/class-url-rules.php';
 require_once ENCONTRA_PUSH_DIR . 'includes/class-frontend.php';
 require_once ENCONTRA_PUSH_DIR . 'includes/class-metrics.php';
 require_once ENCONTRA_PUSH_DIR . 'includes/class-heartbeat.php';
@@ -73,6 +74,7 @@ final class Encontra_Push {
 	public Encontra_Push_Tracking $tracking;
 	public Encontra_Push_Diagnostics $diagnostics;
 	public Encontra_Push_Widget $widget;
+	public Encontra_Push_Url_Rules $url_rules;
 	public Encontra_Push_Frontend $frontend;
 	public Encontra_Push_Metrics $metrics;
 	public Encontra_Push_Heartbeat $heartbeat;
@@ -96,7 +98,8 @@ final class Encontra_Push {
 		$this->tracking       = new Encontra_Push_Tracking( $this->settings );
 		$this->diagnostics    = new Encontra_Push_Diagnostics( $this->settings, $this->api );
 		$this->widget         = new Encontra_Push_Widget();
-		$this->frontend       = new Encontra_Push_Frontend( $this->settings, $this->widget );
+		$this->url_rules      = new Encontra_Push_Url_Rules();
+		$this->frontend       = new Encontra_Push_Frontend( $this->settings, $this->widget, $this->url_rules );
 		$this->heartbeat      = new Encontra_Push_Heartbeat( $this->settings, $this->api );
 		$this->updater        = new Encontra_Push_Updater();
 

@@ -252,6 +252,9 @@ class Encontra_Push_Settings {
 				// custom = pre-prompt antes; native = pedido do navegador direto.
 				'style'                   => 'custom',
 				'delay_seconds'           => 8,
+				// Fracao da pagina a rolar no modo `scroll`. 20% pega o leitor
+				// que passou do primeiro bloco sem esperar o fim do texto.
+				'scroll_percent'          => 20,
 				'visits'                  => 2,
 				'pageviews'               => 2,
 				'css_selector'            => '',

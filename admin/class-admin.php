@@ -30,6 +30,9 @@ class Encontra_Push_Admin {
 		add_action( 'admin_post_encontra_push_verify', array( $this, 'handle_verify' ) );
 		add_action( 'admin_post_encontra_push_prompt', array( $this, 'handle_prompt' ) );
 		add_action( 'admin_post_encontra_push_appearance', array( $this, 'handle_appearance' ) );
+		add_action( 'admin_post_encontra_push_url_rule_save', array( $this, 'handle_url_rule_save' ) );
+		add_action( 'admin_post_encontra_push_url_rule_delete', array( $this, 'handle_url_rule_delete' ) );
+		add_action( 'admin_post_encontra_push_url_rule_move', array( $this, 'handle_url_rule_move' ) );
 		add_action( 'admin_post_encontra_push_widget', array( $this, 'handle_widget' ) );
 		add_action( 'admin_post_encontra_push_diagnostics', array( $this, 'handle_diagnostics' ) );
 		add_action( 'admin_post_encontra_push_check_update', array( $this, 'handle_check_update' ) );
@@ -54,6 +57,7 @@ class Encontra_Push_Admin {
 			'encontra-push-assinantes'   => array( __( 'Assinantes', 'encontra-push' ), 'encontra_push_view', 'render_subscribers' ),
 			'encontra-push-autopush'     => array( __( 'AutoPush', 'encontra-push' ), 'encontra_push_view', 'render_autopush' ),
 			'encontra-push-solicitacao'  => array( __( 'Solicitação', 'encontra-push' ), 'encontra_push_manage', 'render_prompt' ),
+			'encontra-push-regras-url'   => array( __( 'Regras por URL', 'encontra-push' ), 'encontra_push_manage', 'render_url_rules' ),
 			'encontra-push-aparencia'    => array( __( 'Aparência', 'encontra-push' ), 'encontra_push_manage', 'render_appearance' ),
 			'encontra-push-sino'         => array( __( 'Sino de notícias', 'encontra-push' ), 'encontra_push_manage', 'render_widget' ),
 			'encontra-push-integracao'   => array( __( 'Integração', 'encontra-push' ), 'encontra_push_settings', 'render_integration' ),
@@ -127,6 +131,43 @@ class Encontra_Push_Admin {
 
 	public function render_prompt(): void {
 		$this->render( 'prompt', array( 'prompt' => $this->plugin->settings->prompt_config() ) );
+	}
+
+	/**
+	 * Lista das regras por URL, ou o formulario de uma delas.
+	 *
+	 * `ep_rule` decide: ausente mostra a lista, "new" abre o formulario vazio,
+	 * um numero abre aquela regra. Indice inexistente cai na lista em vez de
+	 * abrir um formulario fantasma que gravaria uma regra nova sem aviso.
+	 */
+	public function render_url_rules(): void {
+		$rules = $this->plugin->url_rules->all();
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- navegacao, sem efeito colateral.
+		$pedido = isset( $_GET['ep_rule'] ) ? sanitize_text_field( wp_unslash( $_GET['ep_rule'] ) ) : '';
+
+		$editing = null;
+		$is_form = false;
+		$rule    = array( 'enabled' => true );
+
+		if ( 'new' === $pedido ) {
+			$is_form = true;
+		} elseif ( '' !== $pedido && ctype_digit( $pedido ) && isset( $rules[ (int) $pedido ] ) ) {
+			$editing = (int) $pedido;
+			$is_form = true;
+			$rule    = $rules[ $editing ];
+		}
+
+		$this->render(
+			'url-rules',
+			array(
+				'rules'   => $rules,
+				'editing' => $editing,
+				'is_form' => $is_form,
+				'rule'    => $rule,
+				'page'    => 'encontra-push-regras-url',
+			)
+		);
 	}
 
 	public function render_appearance(): void {
@@ -292,6 +333,9 @@ class Encontra_Push_Admin {
 				? $input['style']
 				: 'custom',
 			'delay_seconds'          => absint( $input['delay_seconds'] ?? 8 ),
+			// Piso de 1: 0% dispararia no carregamento e o gatilho de rolagem
+			// ficaria sem gatilho. O teto de 100 e o fim da pagina.
+			'scroll_percent'         => min( 100, max( 1, absint( $input['scroll_percent'] ?? 20 ) ) ),
 			'visits'                 => absint( $input['visits'] ?? 2 ),
 			'pageviews'              => absint( $input['pageviews'] ?? 2 ),
 			'css_selector'           => sanitize_text_field( $input['css_selector'] ?? '' ),
@@ -341,6 +385,69 @@ class Encontra_Push_Admin {
 		$this->purge_page_cache();
 
 		$this->redirect_back( 'success', __( 'Configuração de inscrição salva.', 'encontra-push' ) );
+	}
+
+	/* ------------------------------------------------- Regras por URL --- */
+
+	/**
+	 * Grava uma regra.
+	 *
+	 * O cache de pagina e limpo em toda alteracao: a regra ja vem resolvida no
+	 * HTML de cada URL, entao sem a limpeza a pagina cacheada continuaria
+	 * servindo o convite antigo.
+	 */
+	public function handle_url_rule_save(): void {
+		$this->authorize( 'encontra_push_manage', 'encontra_push_url_rule_save' );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verificado em authorize().
+		$input = isset( $_POST['rule'] ) ? (array) wp_unslash( $_POST['rule'] ) : array();
+		$rule  = Encontra_Push_Url_Rules::sanitize_rule( $input );
+
+		if ( null === $rule ) {
+			$this->redirect_back( 'error', __( 'Informe o padrão de URL da regra.', 'encontra-push' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verificado em authorize().
+		$index = isset( $_POST['index'] ) && ctype_digit( (string) wp_unslash( $_POST['index'] ) )
+			? (int) wp_unslash( $_POST['index'] )
+			: null;
+
+		$this->plugin->url_rules->put( $index, $rule );
+		$this->purge_page_cache();
+
+		$this->redirect_back( 'success', __( 'Regra salva.', 'encontra-push' ) );
+	}
+
+	public function handle_url_rule_delete(): void {
+		$this->authorize( 'encontra_push_manage', 'encontra_push_url_rule_delete' );
+
+		$this->plugin->url_rules->delete( $this->posted_index() );
+		$this->purge_page_cache();
+
+		$this->redirect_back( 'success', __( 'Regra excluída.', 'encontra-push' ) );
+	}
+
+	public function handle_url_rule_move(): void {
+		$this->authorize( 'encontra_push_manage', 'encontra_push_url_rule_move' );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verificado em authorize().
+		$bruto = isset( $_POST['direction'] ) ? (int) wp_unslash( $_POST['direction'] ) : 0;
+
+		// Só um passo por vez: o formulario manda -1 ou 1, e nada mais entra.
+		$direcao = $bruto < 0 ? -1 : 1;
+
+		$this->plugin->url_rules->move( $this->posted_index(), $direcao );
+		$this->purge_page_cache();
+
+		$this->redirect_back( 'success', __( 'Ordem das regras atualizada.', 'encontra-push' ) );
+	}
+
+	/** Indice de regra vindo do POST. Vale -1 quando ausente: nao casa com nada. */
+	private function posted_index(): int {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verificado em authorize().
+		$bruto = isset( $_POST['index'] ) ? (string) wp_unslash( $_POST['index'] ) : '';
+
+		return ctype_digit( $bruto ) ? (int) $bruto : -1;
 	}
 
 	/** Secao 56 — aparencia. */
