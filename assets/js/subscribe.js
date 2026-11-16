@@ -782,53 +782,32 @@
      * depois de 3 páginas, ou mostrar o pré-prompt na hora.
      */
     function ask() {
+        /*
+         * Sempre o pré-prompt — nunca o pedido nativo direto.
+         *
+         * Todo caminho que chega aqui é um gatilho SEM clique: segundos,
+         * rolagem, visitas e páginas. E um pedido de permissão sem gesto do
+         * usuário não é apenas ineficaz, é contraproducente:
+         *
+         *   Chrome  bloqueia sozinho e avisa o visitante que "o site tentou
+         *           mostrar notificações sem nenhuma interação". A promessa
+         *           volta com "default", como se ninguém tivesse decidido.
+         *   Firefox ignora a chamada em silêncio.
+         *   Safari  recusa.
+         *
+         * Antes, o "default" do Chrome caía no pré-prompt logo abaixo — e o
+         * visitante via as DUAS coisas ao mesmo tempo: o aviso de bloqueio do
+         * navegador e o convite do site. Pior que a confusão visual: cada
+         * visita repetia um pedido sem gesto, e é esse padrão que faz o Chrome
+         * rebaixar o domínio inteiro para o pedido silencioso.
+         *
+         * O gesto que o navegador exige existe — é o clique no botão deste
+         * pré-prompt, que chama requestPermission() na sequência. Os modos
+         * `selector` e `manual` nem passam por aqui: lá o clique do visitante
+         * já é o gesto, e eles vão direto ao navegador.
+         */
         if (promptConfig().style === 'native') {
-            askNative();
-
-            return;
-        }
-
-        showPrompt();
-    }
-
-    /**
-     * Pedido nativo sem passar pelo pré-prompt.
-     *
-     * Só o Chromium abre esse pedido sem um gesto do usuário. O Firefox
-     * ignora a chamada em silêncio e o Safari a recusa — nos dois, a promessa
-     * volta com "default" (ou estoura), e sem tratamento o visitante desses
-     * navegadores nunca teria como se inscrever. Por isso a queda para o
-     * pré-prompt, que funciona em todos.
-     *
-     * Detectar assim, pelo resultado, e melhor do que olhar o user-agent: o
-     * mesmo caminho cobre o Chrome com pedido silencioso (aquele que vira só
-     * um ícone na barra de endereço), que também devolve "default".
-     */
-    async function askNative() {
-        var permission;
-
-        try {
-            permission = await Notification.requestPermission();
-        } catch (e) {
-            showPrompt();
-
-            return;
-        }
-
-        if (permission === 'granted') {
-            report('native_permission_granted');
-            await subscribe(true);
-
-            return;
-        }
-
-        if (permission === 'denied') {
-            report('native_permission_denied');
-            // Bloqueio nativo: não insistir mais (seção 113).
-            snooze(365);
-            refreshWidget();
-
-            return;
+            log('o pedido direto do navegador exige um clique; usando o pré-prompt, cujo botão fornece esse clique.');
         }
 
         showPrompt();

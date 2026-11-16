@@ -56,7 +56,11 @@ defined( 'ABSPATH' ) || exit;
 				</option>
 			</select>
 			<p class="description">
-				<?php esc_html_e( 'Com o pré-prompt, o site pergunta antes e só chama o navegador depois do clique — quem recusa pode ser perguntado outra vez. Direto converte mais, mas quem recusar bloqueia o domínio e não há como pedir de novo. No Firefox e no Safari o pedido direto não abre sem um clique, então nesses navegadores o pré-prompt aparece do mesmo jeito.', 'encontra-push' ); ?>
+				<?php esc_html_e( 'Com o pré-prompt, o site pergunta antes e só chama o navegador depois do clique — quem recusa pode ser perguntado outra vez. Direto converte mais, mas quem recusar bloqueia o domínio e não há como pedir de novo.', 'encontra-push' ); ?>
+			</p>
+			<p class="description">
+				<strong><?php esc_html_e( 'Direto só vale nos modos por clique', 'encontra-push' ); ?></strong>
+				<?php esc_html_e( '(seletor CSS e manual). Nos modos por segundos, visitas, páginas ou rolagem não existe clique do visitante, e todo navegador recusa pedir permissão sem esse gesto: o Chrome bloqueia sozinho e avisa que o site tentou mostrar notificações sem interação, o Firefox ignora e o Safari recusa. Nesses modos o pré-prompt é usado de qualquer forma — e é o clique no botão dele que abre o pedido do navegador.', 'encontra-push' ); ?>
 			</p>
 		</td>
 	</tr>
