@@ -393,8 +393,101 @@
         store('snooze_until', Date.now() + days * 24 * 60 * 60 * 1000);
     }
 
+    /**
+     * Aviso apontando para o ícone da barra de endereço.
+     *
+     * Existe para um beco sem saída: quando o navegador entra em modo
+     * discreto, ele não abre janela nenhuma — troca o pedido por um ícone
+     * pequeno na barra de endereço, que quase ninguém percebe. A promessa
+     * volta com "default" e o visitante não viu pergunta alguma.
+     *
+     * A página não pode forçar a janela, e não pode desenhar fora da sua
+     * própria área — então não há como apontar literalmente para o ícone do
+     * navegador. O que dá para fazer é o que este aviso faz: encostar no alto
+     * da tela, do lado onde o ícone fica, e dizer onde procurar. É o único
+     * caminho que resta para quem quer receber e não conseguiu.
+     *
+     * Aparece uma vez e some no clique. Não tem botão de aceitar de propósito:
+     * nenhum clique nosso abre aquele menu — quem precisa ser clicado é o
+     * ícone do navegador. Um botão aqui só criaria um beco dentro do beco.
+     */
+    function mostrarDicaDaBarra() {
+        if (document.querySelector('.ep-hint')) return;
+
+        var appearance = appearanceConfig();
+        var prompt = promptConfig();
+        var textos = config.i18n || {};
+
+        var root = document.createElement('div');
+        root.className = 'ep-prompt ep-hint ep-prompt--theme-' + promptTheme(appearance, prompt);
+        root.setAttribute('role', 'dialog');
+        root.setAttribute('aria-live', 'polite');
+
+        applyAppearance(root, appearance);
+
+        var seta = document.createElement('span');
+        seta.className = 'ep-hint__arrow';
+        seta.setAttribute('aria-hidden', 'true');
+
+        var content = document.createElement('div');
+        content.className = 'ep-prompt__content';
+
+        var title = document.createElement('p');
+        title.className = 'ep-prompt__title';
+        title.textContent = textos.hintTitle || 'Falta um passo para receber';
+
+        var body = document.createElement('p');
+        body.className = 'ep-prompt__body';
+        body.textContent = textos.hintBody
+            || 'Seu navegador escondeu o pedido de permissão. Clique no ícone de sino ou de cadeado na barra de endereço e escolha "Permitir" para as notificações.';
+
+        content.appendChild(title);
+        content.appendChild(body);
+
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'ep-hint__close';
+        close.setAttribute('aria-label', textos.close || 'Fechar');
+        close.textContent = '×';
+        close.addEventListener('click', function () {
+            fecharDica(root);
+        });
+
+        root.appendChild(seta);
+        root.appendChild(content);
+        root.appendChild(close);
+        document.body.appendChild(root);
+
+        requestAnimationFrame(function () {
+            root.classList.add('ep-prompt--visible');
+        });
+
+        // Some sozinho: o recado e curto e a pessoa esta lendo outra coisa.
+        setTimeout(function () {
+            fecharDica(root);
+        }, 15000);
+    }
+
+    function fecharDica(root) {
+        if (!root || !root.parentNode) return;
+
+        root.classList.remove('ep-prompt--visible');
+        root.classList.add('ep-prompt--leaving');
+
+        setTimeout(function () {
+            if (root.parentNode) root.parentNode.removeChild(root);
+        }, 220);
+    }
+
     function showPrompt() {
-        if (document.querySelector('.ep-prompt')) return;
+        /*
+         * `:not(.ep-hint)` porque o aviso da barra de endereço herda a classe
+         * `.ep-prompt` para reaproveitar o tema e a aparência do site. Sem
+         * isto, um aviso na tela faria o convite desistir de aparecer — e o
+         * aviso some sozinho em 15 segundos, deixando a página sem nenhum dos
+         * dois.
+         */
+        if (document.querySelector('.ep-prompt:not(.ep-hint)')) return;
 
         var element = buildPrompt();
         document.body.appendChild(element);
@@ -409,7 +502,11 @@
 
     /* ------------------------------------------------------ inscrição ---- */
 
-    async function requestPermission() {
+    /**
+     * @param {{dica?: boolean}} [opcoes] `dica: false` suprime o aviso da
+     *        barra de endereço — para quem já tem um aviso próprio na tela.
+     */
+    async function requestPermission(opcoes) {
         var permission;
 
         try {
@@ -450,7 +547,13 @@
         }
 
         if (permission !== 'granted') {
-            log('o navegador não exibiu o pedido (modo discreto); nenhuma resposta foi dada. Tentaremos de novo amanhã.');
+            log('o navegador não exibiu o pedido (modo discreto); nenhuma resposta foi dada.');
+
+            // O sino tem o proprio aviso dentro do painel; dois seria demais.
+            if (!opcoes || opcoes.dica !== false) {
+                mostrarDicaDaBarra();
+            }
+
             snooze(1);
             refreshWidget();
 
@@ -1472,7 +1575,9 @@
                 if (Notification.permission === 'granted') {
                     await subscribe(true);
                 } else {
-                    await requestPermission();
+                    // Sem a dica da barra: o painel do sino ja mostra o proprio
+                    // aviso logo acima, e dois recados iguais confundem.
+                    await requestPermission({ dica: false });
                 }
             } finally {
                 clearTimeout(quietTimer);

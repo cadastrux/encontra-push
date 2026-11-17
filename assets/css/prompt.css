@@ -576,3 +576,103 @@
 @media (prefers-reduced-motion: reduce) {
     .ep-prompt { transition: none; }
 }
+
+/* ------------------------------------------------------------------------
+   Aviso da barra de endereco (secao 19.4)
+
+   Quando o navegador entra em modo discreto, ele nao abre janela nenhuma:
+   troca o pedido de permissao por um icone pequeno na barra de endereco. A
+   pagina nao pode desenhar fora da propria area, entao nao ha como apontar
+   literalmente para esse icone — o que da para fazer e encostar no alto da
+   tela, do lado onde ele costuma ficar, com uma seta para cima.
+
+   Herda `.ep-prompt` para nascer com o tema e as cores do site, e redefine
+   so a posicao, a seta e o botao de fechar.
+   ------------------------------------------------------------------------ */
+
+.ep-hint {
+    top: 12px;
+    left: 12px;
+    right: auto;
+    max-width: 340px;
+    align-items: flex-start;
+    padding-right: 36px;
+}
+
+/* Seta apontando para a barra de endereco, acima da area da pagina. */
+.ep-hint__arrow {
+    position: relative;
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+}
+
+.ep-hint__arrow::before,
+.ep-hint__arrow::after {
+    content: "";
+    position: absolute;
+    background: currentColor;
+    opacity: 0.75;
+}
+
+/* Haste. */
+.ep-hint__arrow::before {
+    left: 8px;
+    top: 3px;
+    width: 2px;
+    height: 14px;
+    border-radius: 1px;
+}
+
+/* Ponta: meio quadrado girado, que vira um "V" invertido no topo da haste. */
+.ep-hint__arrow::after {
+    left: 4px;
+    top: 3px;
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid currentColor;
+    border-left: 2px solid currentColor;
+    background: none;
+    transform: rotate(45deg);
+    transform-origin: center;
+    border-radius: 1px;
+}
+
+.ep-hint__close {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--ep-muted);
+    font-size: 19px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.ep-hint__close:hover {
+    background: rgba(16, 18, 26, 0.06);
+    color: var(--ep-text);
+}
+
+.ep-prompt--theme-dark .ep-hint__close:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/*
+   No celular a barra de endereco ocupa a largura toda, e um cartao estreito
+   encostado a esquerda fica desalinhado do icone. Ocupa a largura disponivel.
+*/
+@media (max-width: 600px) {
+    .ep-hint {
+        left: 12px;
+        right: 12px;
+        max-width: none;
+        width: auto;
+    }
+}

@@ -147,6 +147,21 @@ class Encontra_Push_Frontend {
 					),
 					'iosTitle'  => __( 'Para ativar notificações neste dispositivo', 'encontra-push' ),
 					'close'     => __( 'Fechar', 'encontra-push' ),
+
+					/*
+					 * Secao 19.4 — o navegador escondeu o pedido.
+					 *
+					 * Quando o Chrome entra em modo discreto, ele nao abre
+					 * janela nenhuma: troca o pedido por um icone pequeno na
+					 * barra de endereco, que quase ninguem percebe. A pagina
+					 * nao tem como forcar a janela — mas tem como dizer onde o
+					 * navegador guardou o pedido, e e o unico caminho que resta
+					 * para quem quer receber.
+					 *
+					 * O texto nao promete nada e nao insiste: aponta o lugar.
+					 */
+					'hintTitle' => __( 'Falta um passo para receber', 'encontra-push' ),
+					'hintBody'  => __( 'Seu navegador escondeu o pedido de permissão. Clique no ícone de sino ou de cadeado na barra de endereço e escolha "Permitir" para as notificações.', 'encontra-push' ),
 				),
 			)
 		);
