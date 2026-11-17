@@ -59,8 +59,11 @@ defined( 'ABSPATH' ) || exit;
 				<?php esc_html_e( 'Com o pré-prompt, o site pergunta antes e só chama o navegador depois do clique — quem recusa pode ser perguntado outra vez. Direto converte mais, mas quem recusar bloqueia o domínio e não há como pedir de novo.', 'encontra-push' ); ?>
 			</p>
 			<p class="description">
-				<strong><?php esc_html_e( 'Direto só vale nos modos por clique', 'encontra-push' ); ?></strong>
-				<?php esc_html_e( '(seletor CSS e manual). Nos modos por segundos, visitas, páginas ou rolagem não existe clique do visitante, e todo navegador recusa pedir permissão sem esse gesto: o Chrome bloqueia sozinho e avisa que o site tentou mostrar notificações sem interação, o Firefox ignora e o Safari recusa. Nesses modos o pré-prompt é usado de qualquer forma — e é o clique no botão dele que abre o pedido do navegador.', 'encontra-push' ); ?>
+				<strong><?php esc_html_e( 'Nos modos por segundos, visitas, páginas ou rolagem', 'encontra-push' ); ?></strong>
+				<?php esc_html_e( 'não existe clique no momento do gatilho, e todo navegador recusa pedir permissão sem esse gesto — o Chrome inclusive bloqueia e avisa o visitante que o site tentou mostrar notificações sem interação. Por isso, no modo Direto, o plugin espera o PRÓXIMO gesto do visitante na página (um clique ou uma tecla) e abre o pedido do navegador dentro dele, sem mostrar convite nenhum.', 'encontra-push' ); ?>
+			</p>
+			<p class="description">
+				<?php esc_html_e( 'A troca: quem ler a página inteira sem encostar em nada nunca é perguntado. O pré-prompt convida todo mundo; o Direto converte melhor quem interage, e por isso o padrão continua sendo o pré-prompt. Nos modos seletor CSS e manual os dois estilos se comportam igual, porque ali o clique do visitante já é o gesto.', 'encontra-push' ); ?>
 			</p>
 		</td>
 	</tr>

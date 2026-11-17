@@ -783,11 +783,11 @@
      */
     function ask() {
         /*
-         * Sempre o pré-prompt — nunca o pedido nativo direto.
+         * A chamada nativa NUNCA sai daqui direto.
          *
-         * Todo caminho que chega aqui é um gatilho SEM clique: segundos,
-         * rolagem, visitas e páginas. E um pedido de permissão sem gesto do
-         * usuário não é apenas ineficaz, é contraproducente:
+         * Todo caminho que chega ao ask() é um gatilho sem clique: segundos,
+         * rolagem, visitas e páginas. E pedir permissão sem gesto do usuário
+         * não é apenas ineficaz, é contraproducente:
          *
          *   Chrome  bloqueia sozinho e avisa o visitante que "o site tentou
          *           mostrar notificações sem nenhuma interação". A promessa
@@ -795,22 +795,72 @@
          *   Firefox ignora a chamada em silêncio.
          *   Safari  recusa.
          *
-         * Antes, o "default" do Chrome caía no pré-prompt logo abaixo — e o
-         * visitante via as DUAS coisas ao mesmo tempo: o aviso de bloqueio do
-         * navegador e o convite do site. Pior que a confusão visual: cada
-         * visita repetia um pedido sem gesto, e é esse padrão que faz o Chrome
-         * rebaixar o domínio inteiro para o pedido silencioso.
+         * Repetir isso a cada visita é o padrão que faz o Chrome rebaixar o
+         * domínio inteiro para o pedido silencioso, e essa decisão não tem
+         * volta fácil.
          *
-         * O gesto que o navegador exige existe — é o clique no botão deste
-         * pré-prompt, que chama requestPermission() na sequência. Os modos
-         * `selector` e `manual` nem passam por aqui: lá o clique do visitante
-         * já é o gesto, e eles vão direto ao navegador.
+         * Os dois estilos resolvem o mesmo problema — de onde vem o clique —
+         * por caminhos diferentes:
+         *
+         *   custom  o clique é no botão do nosso pré-prompt;
+         *   native  o clique é o próximo que o visitante der na página.
          */
         if (promptConfig().style === 'native') {
-            log('o pedido direto do navegador exige um clique; usando o pré-prompt, cujo botão fornece esse clique.');
+            aguardarGesto();
+
+            return;
         }
 
         showPrompt();
+    }
+
+    /**
+     * Estilo "direto o pedido do navegador" em gatilho sem clique.
+     *
+     * Em vez de desistir, espera o visitante encostar na página — e dispara o
+     * pedido nativo DENTRO desse evento, que é o que dá ao navegador o gesto
+     * exigido. Nenhum convite do site aparece: é exatamente o que "direto"
+     * promete.
+     *
+     * O custo, que a tela de configuração declara: quem lê a página inteira
+     * sem clicar em nada nunca é perguntado. Troca-se alcance por conversão de
+     * quem interage — e por isso o padrão continua sendo o pré-prompt.
+     */
+    function aguardarGesto() {
+        /*
+         * `pointerdown` em vez de `click`, de propósito: ele chega no momento
+         * em que o dedo ou o botão desce, ANTES de um clique em link começar a
+         * navegar. Com `click`, metade dos gestos da página seria um link, e o
+         * pedido abriria no instante em que a página já está saindo — a janela
+         * some junto. `keydown` cobre quem navega por teclado.
+         *
+         * Captura ligada para que um `stopPropagation()` do tema não nos deixe
+         * surdos; passivo porque não cancelamos nada.
+         */
+        var eventos = ['pointerdown', 'keydown'];
+        var disparado = false;
+
+        function soltar() {
+            eventos.forEach(function (nome) {
+                document.removeEventListener(nome, aoGesto, { capture: true });
+            });
+        }
+
+        function aoGesto() {
+            if (disparado) return;
+
+            disparado = true;
+            soltar();
+
+            log('gesto do visitante recebido; abrindo o pedido do navegador.');
+            requestPermission();
+        }
+
+        eventos.forEach(function (nome) {
+            document.addEventListener(nome, aoGesto, { capture: true, passive: true });
+        });
+
+        log('estilo direto: aguardando o próximo gesto do visitante para abrir o pedido do navegador.');
     }
 
     /**
