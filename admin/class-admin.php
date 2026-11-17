@@ -324,10 +324,16 @@ class Encontra_Push_Admin {
 			 * Como a permissao e pedida: `custom` mostra o pre-prompt do site
 			 * antes; `native` abre o pedido do navegador direto.
 			 *
-			 * O direto so funciona no Chromium — Firefox e Safari exigem um
-			 * gesto do usuario e ignoram a chamada feita no carregamento. Nos
-			 * dois, o JavaScript cai no pre-prompt sozinho, senao o visitante
-			 * desses navegadores nunca teria como se inscrever.
+			 * Direto nao significa "no carregamento". Nenhum navegador pede
+			 * permissao sem um gesto do visitante — o Chrome bloqueia e avisa
+			 * que o site tentou sem interacao, o Firefox ignora, o Safari
+			 * recusa. Entao o modo direto espera o PROXIMO gesto na pagina
+			 * (clique ou tecla) e abre o pedido dentro dele, sem convite.
+			 *
+			 * A escolha e por aparelho, e isso importa: no celular nao ha
+			 * icone na barra de endereco para recuperar quem o navegador
+			 * silenciou, entao o pre-prompt costuma render mais ali do que o
+			 * direto, mesmo convertendo menos por visitante que interage.
 			 */
 			'style'                  => in_array( $input['style'] ?? 'custom', array( 'custom', 'native' ), true )
 				? $input['style']
