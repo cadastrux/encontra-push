@@ -1026,16 +1026,31 @@
      */
     function aguardarGesto() {
         /*
-         * `pointerdown` em vez de `click`, de propósito: ele chega no momento
-         * em que o dedo ou o botão desce, ANTES de um clique em link começar a
-         * navegar. Com `click`, metade dos gestos da página seria um link, e o
-         * pedido abriria no instante em que a página já está saindo — a janela
-         * some junto. `keydown` cobre quem navega por teclado.
+         * Nem todo evento de entrada serve: o navegador só considera "gesto do
+         * usuário" uma lista fechada, e ela trata mouse e toque de formas
+         * DIFERENTES.
+         *
+         *   mouse  `pointerdown` já concede a ativação. Melhor que `click`
+         *          porque chega quando o botão desce, antes de um clique em
+         *          link começar a navegar — com `click`, metade dos gestos de
+         *          uma página seria um link e o pedido abriria com a página já
+         *          saindo, levando a janela junto.
+         *
+         *   toque  `pointerdown` NÃO concede. Quem concede é `pointerup` ou
+         *          `touchend`. Escutar só o primeiro faria o pedido sair sem
+         *          ativação no celular — o Android o descartaria em silêncio, e
+         *          o disparo único já teria sido gasto. No celular não há ícone
+         *          na barra de endereço para recuperar, então o visitante
+         *          ficaria sem nenhuma chance.
+         *
+         *   teclado `keydown`.
+         *
+         * `touchend` fica como rede para navegador antigo sem Pointer Events.
          *
          * Captura ligada para que um `stopPropagation()` do tema não nos deixe
          * surdos; passivo porque não cancelamos nada.
          */
-        var eventos = ['pointerdown', 'keydown'];
+        var eventos = ['pointerdown', 'pointerup', 'touchend', 'keydown'];
         var disparado = false;
 
         function soltar() {
@@ -1044,13 +1059,22 @@
             });
         }
 
-        function aoGesto() {
+        function aoGesto(event) {
             if (disparado) return;
+
+            /*
+             * O toque desce em `pointerdown` mas só vira gesto no `pointerup`.
+             * Deixar passar aqui queimaria a única chance com uma chamada que
+             * o navegador vai ignorar.
+             */
+            if (event && event.type === 'pointerdown' && event.pointerType && event.pointerType !== 'mouse') {
+                return;
+            }
 
             disparado = true;
             soltar();
 
-            log('gesto do visitante recebido; abrindo o pedido do navegador.');
+            log('gesto do visitante recebido (' + (event && event.type) + '); abrindo o pedido do navegador.');
             requestPermission();
         }
 
