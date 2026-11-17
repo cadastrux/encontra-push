@@ -418,10 +418,40 @@
             return;
         }
 
-        if (permission !== 'granted') {
+        /*
+         * "Negado" e "ninguém respondeu" são resultados opostos, e tratá-los
+         * igual sai caro.
+         *
+         * denied   o visitante viu a pergunta e disse não. A seção 113 manda
+         *          não insistir, e é o que fazemos: um ano.
+         *
+         * default  NINGUÉM decidiu nada. O Chrome escondeu o pedido ("o Chrome
+         *          acredita que você não quer receber notificações deste
+         *          site"), ou o navegador descartou a chamada. O visitante não
+         *          viu pergunta alguma.
+         *
+         * Dar um ano de silêncio ao segundo caso descarta, de uma vez, todo
+         * visitante de um navegador em modo discreto — gente que nunca foi
+         * perguntada. E registrar isso como recusa enche o funil de opt-in do
+         * painel com negativas que não existiram, estragando justamente o
+         * número que diria se o convite está funcionando.
+         *
+         * Um dia é o bastante para não repetir o pedido a cada página, e curto
+         * o bastante para a pessoa ser perguntada de novo quando o navegador
+         * voltar a mostrar — seja porque ela liberou o site na barra de
+         * endereço, seja porque a reputação do domínio se recuperou.
+         */
+        if (permission === 'denied') {
             report('native_permission_denied');
-            // Bloqueio nativo: não insistir mais (seção 113).
             snooze(365);
+            refreshWidget();
+
+            return;
+        }
+
+        if (permission !== 'granted') {
+            log('o navegador não exibiu o pedido (modo discreto); nenhuma resposta foi dada. Tentaremos de novo amanhã.');
+            snooze(1);
             refreshWidget();
 
             return;
