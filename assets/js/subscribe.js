@@ -236,24 +236,64 @@
 
     /* ------------------------------------------------ elegibilidade do prompt */
 
+    /**
+     * Pode pedir agora?
+     *
+     * Cada "não" deixa uma linha no console dizendo qual foi.
+     *
+     * Antes todos os caminhos devolviam `false` calados, e o `boot()` saía sem
+     * dizer nada. "Não aparece nada no site" era a reclamação mais comum e a
+     * mais difícil de responder: o convite desligado, o aparelho desmarcado, a
+     * permissão negada no navegador e o adiamento em curso produzem
+     * exatamente o mesmo nada na tela — e só um deles é problema.
+     */
     function shouldShowPrompt() {
         var prompt = promptConfig();
 
-        if (prompt.mode === 'disabled') return false;
-        if (!prompt.desktop && !isMobile()) return false;
-        if (!prompt.mobile && isMobile()) return false;
+        if (prompt.mode === 'disabled') {
+            log('convite desligado nas configurações deste site.');
+
+            return false;
+        }
+
+        if (!prompt.desktop && !isMobile()) {
+            log('convite desmarcado para desktop em "Onde aparece".');
+
+            return false;
+        }
+
+        if (!prompt.mobile && isMobile()) {
+            log('convite desmarcado para celular e tablet em "Onde aparece".');
+
+            return false;
+        }
 
         // Seção 113: permissão negada no navegador encerra o assunto. Insistir
         // com um botão que abre um prompt que não vai aparecer só frustra.
-        if (Notification.permission === 'denied') return false;
+        if (Notification.permission === 'denied') {
+            log('este navegador BLOQUEOU as notificações deste site. Nada será exibido — nem o convite, '
+                + 'nem o aviso da barra de endereço. Para testar de novo, libere o site nas configurações '
+                + 'do navegador (ícone à esquerda do endereço > Configurações de sites > Notificações).');
+
+            return false;
+        }
 
         // Já inscrito: não há o que pedir.
-        if (Notification.permission === 'granted') return false;
+        if (Notification.permission === 'granted') {
+            log('permissão já concedida neste navegador; não ha o que pedir.');
+
+            return false;
+        }
 
         // Seção 19.3: respeitar a janela de reexibição.
         var snoozeUntil = parseInt(read('snooze_until') || '0', 10);
 
-        if (snoozeUntil && Date.now() < snoozeUntil) return false;
+        if (snoozeUntil && Date.now() < snoozeUntil) {
+            log('adiamento em curso até ' + new Date(snoozeUntil).toLocaleString()
+                + '. Para testar agora, limpe os dados do site ou use uma janela anônima.');
+
+            return false;
+        }
 
         return true;
     }
@@ -884,11 +924,23 @@
                 break;
 
             case 'visits':
-                if (counters.visits >= (prompt.visits || 2)) ask();
+                if (counters.visits >= (prompt.visits || 2)) {
+                    ask();
+                } else {
+                    // Sem isto, o visitante na primeira de duas visitas ve o
+                    // mesmo nada de quem esta bloqueado — e sao coisas opostas.
+                    log('gatilho por visitas: esta e a ' + counters.visits + '.ª de '
+                        + (prompt.visits || 2) + ' necessarias.');
+                }
                 break;
 
             case 'pageviews':
-                if (counters.pageviews >= (prompt.pageviews || 2)) ask();
+                if (counters.pageviews >= (prompt.pageviews || 2)) {
+                    ask();
+                } else {
+                    log('gatilho por paginas: esta e a ' + counters.pageviews + '.ª de '
+                        + (prompt.pageviews || 2) + ' necessarias nesta sessao.');
+                }
                 break;
 
             // Seletor e manual dependem de um clique, e clique já e a ação do
@@ -905,6 +957,19 @@
             default:
                 setTimeout(ask, (prompt.delay_seconds || 8) * 1000);
         }
+
+        /*
+         * Diz o que ficou armado, e com que estilo.
+         *
+         * E a linha que responde "o que ele esta esperando?" — pergunta que
+         * antes exigia abrir o codigo. No estilo direto ela avisa que o
+         * proximo passo depende de um gesto do visitante: sem esse aviso,
+         * esperar por um clique e nao ter nada acontecendo na tela sao
+         * indistinguiveis de fora.
+         */
+        log('gatilho armado: ' + (prompt.mode || 'delay')
+            + ', estilo ' + (prompt.style === 'native' ? 'direto do navegador' : 'pre-prompt do site')
+            + '.');
     }
 
     /*
